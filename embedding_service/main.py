@@ -112,7 +112,11 @@ async def create_embeddings(request: EmbeddingRequest):
 
     readable_sparse = None
     if lexical_weights is not None:
+        if not isinstance(lexical_weights, list):
+            lexical_weights = [lexical_weights]
         readable_sparse = model.convert_id_to_token(lexical_weights)
+        if isinstance(readable_sparse, dict):
+            readable_sparse = [readable_sparse]
 
     data: list[EmbeddingItem] = []
     for i in range(len(texts)):
