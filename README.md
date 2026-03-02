@@ -3,8 +3,11 @@
 BGE-M3 Embedding & BGE-Reranker-v2-m3 microservices for hybrid search.
 
 ```bash
-# Запуск обоих сервисов (из любого терминала)
-cd ~/development/Services-BGE && ./scripts/start_all.sh
+# Установить как системный сервис (один раз)
+cd ~/development/Services-BGE && ./scripts/service.sh install && ./scripts/service.sh start
+
+# Проверить статус
+./scripts/service.sh status
 ```
 
 ## Architecture
@@ -26,15 +29,24 @@ Two FastAPI microservices in one project:
 ## Quick Start
 
 ```bash
-# Install dependencies
-uv sync
+uv sync                              # Install dependencies (once)
+./scripts/service.sh install         # Install as macOS launchd service (once)
+./scripts/service.sh start           # Start both services
+./scripts/service.sh status          # Check health & PIDs
+./scripts/service.sh stop            # Stop both services
+./scripts/service.sh restart         # Restart both services
+./scripts/service.sh logs            # Tail live logs
+./scripts/service.sh uninstall       # Remove from launchd
+```
 
-# Start both services
-./scripts/start_all.sh
+Services auto-start on login and auto-restart on crash via launchd.
+Logs: `~/Library/Logs/Services-BGE/`
 
-# Or start individually
-uv run uvicorn embedding_service.main:app --port 9001 --workers 1
-uv run uvicorn reranker_service.main:app --port 9002 --workers 1
+Manual fallback (without launchd):
+
+```bash
+./scripts/start_all.sh               # Runs in foreground terminal
+./scripts/stop_all.sh                # Stop manual processes
 ```
 
 ## API

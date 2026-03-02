@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.services-bge.embedding</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/aleksandrmordvinov/.local/bin/uv</string>
+        <string>run</string>
+        <string>uvicorn</string>
+        <string>embedding_service.main:app</string>
+        <string>--host</string>
+        <string>0.0.0.0</string>
+        <string>--port</string>
+        <string>9001</string>
+        <string>--workers</string>
+        <string>1</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/aleksandrmordvinov/development/Services-BGE</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>TOKENIZERS_PARALLELISM</key>
+        <string>0</string>
+        <key>HOME</key>
+        <string>/Users/aleksandrmordvinov</string>
+        <key>PATH</key>
+        <string>/Users/aleksandrmordvinov/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/aleksandrmordvinov/Library/Logs/Services-BGE/embedding.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/aleksandrmordvinov/Library/Logs/Services-BGE/embedding.err</string>
+</dict>
+</plist>
