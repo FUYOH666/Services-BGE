@@ -2,7 +2,7 @@
 
 ## Контекст
 
-На MacBook подняты **нативные** сервисы BGE-M3 (embedding) и BGE-Reranker-v2-m3 (reranker) вместо LM Studio. Серверный Cursor должен обновить свои skills и rules, чтобы обращаться к ним по правильным адресам.
+На MacBook подняты **нативные** сервисы BGE-M3 (embedding) и BGE-Reranker-v2-m3 (reranker) вместо LM Studio. Сервисы работают через **launchd** — автостарт при логине, авторестарт при падении, MPS/Metal GPU. Серверный Cursor должен обновить свои skills и rules, чтобы обращаться к ним по правильным адресам.
 
 ## Что изменилось
 
