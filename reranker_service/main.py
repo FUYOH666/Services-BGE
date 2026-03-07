@@ -84,6 +84,10 @@ async def rerank(request: RerankRequest):
     scores = model.compute_score(pairs, normalize=request.normalize)
     elapsed = time.monotonic() - t0
 
+    if settings.device == "mps":
+        import torch
+        torch.mps.empty_cache()
+
     if isinstance(scores, (int, float)):
         scores = [scores]
 

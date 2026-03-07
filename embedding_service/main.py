@@ -103,6 +103,11 @@ async def create_embeddings(request: EmbeddingRequest):
         return_colbert_vecs=request.return_colbert,
     )
     elapsed = time.monotonic() - t0
+
+    if settings.device == "mps":
+        import torch
+        torch.mps.empty_cache()
+
     logger.info("Encoded %d texts in %.3f s (%.1f texts/s)", len(texts), elapsed,
                 len(texts) / elapsed if elapsed > 0 else 0)
 
