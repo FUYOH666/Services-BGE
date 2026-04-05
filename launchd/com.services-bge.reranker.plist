@@ -7,29 +7,22 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/aleksandrmordvinov/.local/bin/uv</string>
-        <string>run</string>
-        <string>uvicorn</string>
-        <string>reranker_service.main:app</string>
-        <string>--host</string>
-        <string>0.0.0.0</string>
-        <string>--port</string>
-        <string>9002</string>
-        <string>--workers</string>
-        <string>1</string>
+        <string>/bin/bash</string>
+        <string>__PROJECT_DIR__/scripts/run_service.sh</string>
+        <string>reranker</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/aleksandrmordvinov/development/Services-BGE</string>
+    <string>__PROJECT_DIR__</string>
 
     <key>EnvironmentVariables</key>
     <dict>
         <key>TOKENIZERS_PARALLELISM</key>
-        <string>0</string>
+        <string>false</string>
         <key>HOME</key>
-        <string>/Users/aleksandrmordvinov</string>
+        <string>__HOME__</string>
         <key>PATH</key>
-        <string>/Users/aleksandrmordvinov/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <string>__LAUNCHD_PATH__</string>
     </dict>
 
     <key>RunAtLoad</key>
@@ -42,9 +35,9 @@
     <integer>10</integer>
 
     <key>StandardOutPath</key>
-    <string>/Users/aleksandrmordvinov/Library/Logs/Services-BGE/reranker.log</string>
+    <string>__LOG_DIR__/reranker.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/aleksandrmordvinov/Library/Logs/Services-BGE/reranker.err</string>
+    <string>__LOG_DIR__/reranker.err</string>
 </dict>
 </plist>

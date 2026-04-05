@@ -17,15 +17,19 @@ TEXTS = [
 ]
 
 
-def test_embedding_health():
-    r = httpx.get(f"{EMBED_URL}/healthz", timeout=5)
+def check_embedding_health():
+    live = httpx.get(f"{EMBED_URL}/livez", timeout=5)
+    live.raise_for_status()
+    print(f"  livez:  {json.dumps(live.json(), ensure_ascii=False)}")
+
+    r = httpx.get(f"{EMBED_URL}/readyz", timeout=5)
     r.raise_for_status()
     data = r.json()
     assert data["ready"], f"Embedding not ready: {data}"
-    print(f"  health: {json.dumps(data, ensure_ascii=False)}")
+    print(f"  readyz: {json.dumps(data, ensure_ascii=False)}")
 
 
-def test_embedding():
+def check_embedding():
     t0 = time.monotonic()
     r = httpx.post(
         f"{EMBED_URL}/v1/embeddings",
@@ -61,15 +65,19 @@ def test_embedding():
     print(f"  qdrant indices: {len(item['sparse_qdrant']['indices'])}")
 
 
-def test_reranker_health():
-    r = httpx.get(f"{RERANK_URL}/healthz", timeout=5)
+def check_reranker_health():
+    live = httpx.get(f"{RERANK_URL}/livez", timeout=5)
+    live.raise_for_status()
+    print(f"  livez:  {json.dumps(live.json(), ensure_ascii=False)}")
+
+    r = httpx.get(f"{RERANK_URL}/readyz", timeout=5)
     r.raise_for_status()
     data = r.json()
     assert data["ready"], f"Reranker not ready: {data}"
-    print(f"  health: {json.dumps(data, ensure_ascii=False)}")
+    print(f"  readyz: {json.dumps(data, ensure_ascii=False)}")
 
 
-def test_reranker():
+def check_reranker():
     query = "бесшовные трубы из нержавеющей стали"
     documents = [
         "7304 — Трубы, трубки и профили полые, бесшовные, из черных металлов (кроме чугунного литья)",
@@ -103,10 +111,10 @@ def test_reranker():
 def main():
     ok = True
     for name, fn in [
-        ("Embedding Health", test_embedding_health),
-        ("Embedding Encode", test_embedding),
-        ("Reranker Health", test_reranker_health),
-        ("Reranker Score", test_reranker),
+        ("Embedding Health", check_embedding_health),
+        ("Embedding Encode", check_embedding),
+        ("Reranker Health", check_reranker_health),
+        ("Reranker Score", check_reranker),
     ]:
         print(f"\n=== {name} ===")
         try:

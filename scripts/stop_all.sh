@@ -1,6 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
+cd "$(dirname "$0")/.."
+
+if [ -f ".env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    source ".env"
+    set +a
+fi
+
 EMBED_PORT="${EMBEDDING_PORT:-9001}"
 RERANK_PORT="${RERANKER_PORT:-9002}"
 PIDFILE_DIR="/tmp/services-bge"
@@ -21,12 +30,11 @@ for svc in embedding reranker; do
     fi
 done
 
-# Fallback: kill anything still on the ports
 for port in "$EMBED_PORT" "$RERANK_PORT"; do
     pids=$(lsof -ti :"$port" 2>/dev/null || true)
     if [ -n "$pids" ]; then
-        echo "Cleaning up stale process on port $port..."
-        echo "$pids" | xargs kill -9 2>/dev/null || true
+        echo "Warning: port $port is still in use by PID(s): $pids"
+        echo "Leaving that process untouched."
     fi
 done
 

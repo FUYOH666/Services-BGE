@@ -1,63 +1,86 @@
 # Services-BGE
 
-BGE-M3 Embedding & BGE-Reranker-v2-m3 microservices for hybrid search.
-
-```bash
-# Установить как системный сервис (один раз)
-cd ~/development/Services-BGE && ./scripts/service.sh install && ./scripts/service.sh start
-
-# Проверить статус
-./scripts/service.sh status
-```
+BGE-M3 embedding and BGE-Reranker-v2-m3 microservices for hybrid search on Apple Silicon.
 
 ## Architecture
 
-Two FastAPI microservices in one project:
+Two FastAPI services live in one project:
 
 | Service | Model | Port | Purpose |
 |---------|-------|------|---------|
-| Embedding | `BAAI/bge-m3` (568M params) | 9001 | Dense + sparse vectors for Qdrant hybrid search |
-| Reranker | `BAAI/bge-reranker-v2-m3` (568M params) | 9002 | Cross-encoder relevance scoring |
+| Embedding | `BAAI/bge-m3` | `9001` | Dense + sparse vectors for hybrid search |
+| Reranker | `BAAI/bge-reranker-v2-m3` | `9002` | Cross-encoder relevance scoring |
+
+Runtime characteristics:
+
+- Apple Silicon only, using `mps`
+- One worker per service
+- `launchd` for auto-start and crash restart
+- Explicit `readyz` and `livez` endpoints
+- MPS cache is cleared after inference to keep memory usage stable
+- HuggingFace tokenizer parallelism is forced to `false` to reduce fork-related noise on macOS
 
 ## Requirements
 
-- macOS with Apple Silicon (M1/M2/M3/M4 Max/Ultra)
-- Python 3.12
-- ~3 GB RAM for both models (MPS/Metal)
-- [uv](https://docs.astral.sh/uv/) package manager
+- macOS on Apple Silicon
+- Python `3.12`
+- [uv](https://docs.astral.sh/uv/)
+- About `3-4 GB` RAM for both models together, plus headroom for startup and fragmentation
 
 ## Quick Start
 
 ```bash
-uv sync                              # Install dependencies (once)
-./scripts/service.sh install         # Install as macOS launchd service (once)
-./scripts/service.sh start           # Start both services
-./scripts/service.sh status          # Check health & PIDs
-./scripts/service.sh stop            # Stop both services
-./scripts/service.sh restart         # Restart both services
-./scripts/service.sh logs            # Tail live logs
-./scripts/service.sh uninstall       # Remove from launchd
+cd ~/development/Services-BGE
+uv sync
+cp .env.example .env                  # optional, if you want custom host/port/log settings
+./scripts/service.sh install
+./scripts/service.sh start
+./scripts/service.sh status
 ```
 
-Services auto-start on login and auto-restart on crash via launchd.
-Logs: `~/Library/Logs/Services-BGE/`
-
-Manual fallback (without launchd):
+Useful commands:
 
 ```bash
-./scripts/start_all.sh               # Runs in foreground terminal
-./scripts/stop_all.sh                # Stop manual processes
+./scripts/service.sh stop
+./scripts/service.sh restart
+./scripts/service.sh logs
+./scripts/service.sh uninstall
 ```
 
-## API
+`install` renders `launchd` plist files for the current machine and project path. Host/port/workers/log level are read from `.env` by `scripts/run_service.sh`, so changing `.env` only requires `./scripts/service.sh restart`.
 
-### Embedding Service (port 9001)
+Logs are written to `~/Library/Logs/Services-BGE/`.
+
+Manual foreground fallback:
 
 ```bash
-# Health check
-curl http://localhost:9001/healthz
+./scripts/start_all.sh
+./scripts/stop_all.sh
+```
 
-# Generate embeddings (dense + sparse)
+## Health Endpoints
+
+Each service exposes:
+
+- `GET /livez` - process is alive
+- `GET /readyz` - model is loaded and ready for inference
+- `GET /healthz` - backward-compatible alias for `readyz`
+- `GET /health` - backward-compatible alias for `readyz`
+
+Examples:
+
+```bash
+curl http://localhost:9001/livez
+curl http://localhost:9001/readyz
+curl http://localhost:9002/livez
+curl http://localhost:9002/readyz
+```
+
+## API Examples
+
+### Embedding
+
+```bash
 curl -X POST http://localhost:9001/v1/embeddings \
   -H "Content-Type: application/json" \
   -d '{
@@ -67,13 +90,9 @@ curl -X POST http://localhost:9001/v1/embeddings \
   }'
 ```
 
-### Reranker Service (port 9002)
+### Reranker
 
 ```bash
-# Health check
-curl http://localhost:9002/healthz
-
-# Rerank documents
 curl -X POST http://localhost:9002/v1/rerank \
   -H "Content-Type: application/json" \
   -d '{
@@ -83,11 +102,35 @@ curl -X POST http://localhost:9002/v1/rerank \
   }'
 ```
 
-## Environment Variables
+## Configuration
 
-See `.env.example` for all available configuration options.
+All runtime settings live in `.env` and are documented in `.env.example`.
 
-## Performance (Apple M4 Max, MPS/Metal, fp32)
+Important notes:
+
+- Default `HOST` is `0.0.0.0`, which allows access from other interfaces such as TailScale or LAN.
+- If you want local-only access, set `EMBEDDING_HOST=127.0.0.1` and `RERANKER_HOST=127.0.0.1`, then restart the services.
+- `service.sh` will refuse to kill unrelated processes that already occupy `9001` or `9002`.
+
+## Testing
+
+Fast local checks:
+
+```bash
+uv run --extra dev pytest
+uv run python scripts/test_services.py
+```
+
+`pytest` uses fake in-memory model stubs, so it validates endpoint behavior without downloading or loading the real BGE models.
+
+## Operational Notes
+
+- The canonical production path is `dense + sparse` vectors from BGE-M3 into Qdrant, then second-stage `reranker`; `colbert_embedding` is available for experiments but is not part of the default runtime contract.
+- If you still see `resource_tracker: leaked semaphore objects` during shutdown on macOS, treat it as a known platform/runtime warning unless it starts affecting startup or inference. The services are configured to minimize tokenizer parallelism noise, but the warning can still appear on process teardown.
+
+## Performance
+
+Measured on Apple M4 Max with MPS/Metal and fp32:
 
 | Operation | Latency (warm) | Throughput |
 |-----------|---------------|------------|
@@ -100,4 +143,4 @@ See `.env.example` for all available configuration options.
 |-------|------|-----------|
 | BGE-M3 | ~2.2 GB | ~2 GB |
 | BGE-Reranker-v2-m3 | ~2.2 GB | ~1 GB |
-| **Total** | **~4.4 GB** | **~3 GB** |
+| **Total** | **~4.4 GB** | **~3-4 GB with runtime overhead** |

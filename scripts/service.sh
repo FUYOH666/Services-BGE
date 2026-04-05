@@ -5,6 +5,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LAUNCHD_DIR="$PROJECT_DIR/launchd"
 AGENTS_DIR="$HOME/Library/LaunchAgents"
 LOG_DIR="$HOME/Library/Logs/Services-BGE"
+LAUNCHD_DOMAIN="gui/$(id -u)"
 
 SERVICES=(
     "com.services-bge.embedding"
@@ -19,22 +20,75 @@ usage() {
 Usage: $(basename "$0") <command>
 
 Commands:
-  install     Copy plist files to LaunchAgents and create log directory
+  install     Render plist files into LaunchAgents and create log directory
   uninstall   Stop services and remove plist files
   start       Start both services via launchd
   stop        Stop both services via launchd
   restart     Stop then start both services
-  status      Show PID, health, and log paths
+  status      Show PID, readiness, and log paths
   logs        Tail logs from both services (Ctrl+C to stop)
 
 EOF
     exit 1
 }
 
+port_pids() {
+    local port="$1"
+    lsof -ti :"$port" 2>/dev/null || true
+}
+
+wait_for_port_free() {
+    local port="$1"
+    local attempts="${2:-20}"
+    local pids=""
+
+    for ((i = 0; i < attempts; i++)); do
+        pids="$(port_pids "$port")"
+        if [ -z "$pids" ]; then
+            return 0
+        fi
+        sleep 0.5
+    done
+
+    echo "$pids"
+    return 1
+}
+
+launchd_path() {
+    local uv_bin
+    uv_bin="$(command -v uv 2>/dev/null || true)"
+    if [ -n "$uv_bin" ]; then
+        printf '%s:%s\n' "$(dirname "$uv_bin")" "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+    else
+        printf '%s\n' "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+    fi
+}
+
+render_plist() {
+    local src="$1"
+    local dst="$2"
+    local resolved_path
+    resolved_path="$(launchd_path)"
+
+    python3 - "$src" "$dst" "$PROJECT_DIR" "$HOME" "$resolved_path" "$LOG_DIR" <<'PY'
+from pathlib import Path
+import sys
+
+src, dst, project_dir, home_dir, launchd_path, log_dir = sys.argv[1:]
+text = Path(src).read_text()
+text = text.replace("__PROJECT_DIR__", project_dir)
+text = text.replace("__HOME__", home_dir)
+text = text.replace("__LAUNCHD_PATH__", launchd_path)
+text = text.replace("__LOG_DIR__", log_dir)
+Path(dst).write_text(text)
+PY
+}
+
 cmd_install() {
     echo "=== Installing BGE Services ==="
 
     mkdir -p "$AGENTS_DIR" "$LOG_DIR"
+    chmod +x "$PROJECT_DIR/scripts/run_service.sh"
 
     for svc in "${SERVICES[@]}"; do
         src="$LAUNCHD_DIR/$svc.plist"
@@ -45,7 +99,7 @@ cmd_install() {
             exit 1
         fi
 
-        cp "$src" "$dst"
+        render_plist "$src" "$dst"
         echo "  Installed $dst"
     done
 
@@ -82,18 +136,17 @@ cmd_start() {
             exit 1
         fi
 
-        # Kill anything on the port first
-        pids=$(lsof -ti :"$port" 2>/dev/null || true)
-        if [ -n "$pids" ]; then
-            echo "  Killing stale process on port $port..."
-            echo "$pids" | xargs kill -9 2>/dev/null || true
-            sleep 1
+        launchctl bootout "$LAUNCHD_DOMAIN/$svc" 2>/dev/null || true
+
+        if pids="$(wait_for_port_free "$port" 12)"; then
+            :
+        else
+            echo "ERROR: Port $port is already in use by PID(s): $pids"
+            echo "Refusing to kill unrelated processes automatically."
+            exit 1
         fi
 
-        # Unload if already loaded, ignore errors
-        launchctl bootout "gui/$(id -u)/$svc" 2>/dev/null || true
-
-        launchctl bootstrap "gui/$(id -u)" "$plist"
+        launchctl bootstrap "$LAUNCHD_DOMAIN" "$plist"
         echo "  Started $name (port $port)"
     done
 
@@ -108,20 +161,20 @@ cmd_stop() {
     for i in "${!SERVICES[@]}"; do
         svc="${SERVICES[$i]}"
         name="${NAMES[$i]}"
+        port="${PORTS[$i]}"
 
-        if launchctl print "gui/$(id -u)/$svc" &>/dev/null; then
-            launchctl bootout "gui/$(id -u)/$svc"
+        if launchctl print "$LAUNCHD_DOMAIN/$svc" &>/dev/null; then
+            launchctl bootout "$LAUNCHD_DOMAIN/$svc"
             echo "  Stopped $name"
         else
             echo "  $name not running"
         fi
-    done
 
-    # Clean up any lingering processes on the ports
-    for port in "${PORTS[@]}"; do
-        pids=$(lsof -ti :"$port" 2>/dev/null || true)
-        if [ -n "$pids" ]; then
-            echo "$pids" | xargs kill -9 2>/dev/null || true
+        if pids="$(wait_for_port_free "$port" 12)"; then
+            :
+        elif [ -n "$pids" ]; then
+            echo "  Warning: port $port is still in use by PID(s): $pids"
+            echo "  Leaving that process untouched."
         fi
     done
 
@@ -145,22 +198,21 @@ cmd_status() {
 
         printf "%-12s " "[$name]"
 
-        # Check if loaded in launchd
-        if launchctl print "gui/$(id -u)/$svc" &>/dev/null; then
-            pid=$(launchctl print "gui/$(id -u)/$svc" 2>/dev/null | grep -m1 "pid =" | awk '{print $3}' || echo "?")
+        if launchctl print "$LAUNCHD_DOMAIN/$svc" &>/dev/null; then
+            pid=$(launchctl print "$LAUNCHD_DOMAIN/$svc" 2>/dev/null | awk '/pid =/{print $3; exit}' || echo "?")
             printf "launchd=loaded  pid=%-8s " "$pid"
         else
             printf "launchd=unloaded               "
         fi
 
-        # Check health endpoint
-        health=$(curl -s --max-time 2 "http://localhost:$port/healthz" 2>/dev/null || echo "")
+        health="$(curl -s --max-time 2 "http://localhost:$port/readyz" 2>/dev/null || true)"
         if [ -n "$health" ]; then
             ready=$(echo "$health" | python3 -c "import json,sys; print(json.load(sys.stdin).get('ready','?'))" 2>/dev/null || echo "?")
             device=$(echo "$health" | python3 -c "import json,sys; print(json.load(sys.stdin).get('device','?'))" 2>/dev/null || echo "?")
-            printf "health=ok  ready=%s  device=%s" "$ready" "$device"
+            status=$(echo "$health" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null || echo "?")
+            printf "ready=%s  status=%s  device=%s" "$ready" "$status" "$device"
         else
-            printf "health=unreachable"
+            printf "ready=unreachable"
         fi
         echo ""
     done
@@ -181,7 +233,6 @@ cmd_logs() {
     tail -f "$LOG_DIR"/embedding.log "$LOG_DIR"/reranker.log "$LOG_DIR"/embedding.err "$LOG_DIR"/reranker.err 2>/dev/null
 }
 
-# --- Main ---
 if [ $# -lt 1 ]; then
     usage
 fi

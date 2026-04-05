@@ -2,7 +2,7 @@ import os
 
 from pydantic_settings import BaseSettings
 
-os.environ.setdefault("TOKENIZERS_PARALLELISM", "0")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 
 class EmbeddingSettings(BaseSettings):

@@ -8,7 +8,7 @@ import time
 import psutil
 import torch
 
-os.environ["TOKENIZERS_PARALLELISM"] = "0"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 TEXTS = [
     "бесшовные трубы из нержавеющей стали марки AISI 304, диаметр 50мм",

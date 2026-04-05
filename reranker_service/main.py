@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response, status
 
 from reranker_service.config import settings
 from reranker_service.models import (
@@ -25,10 +26,30 @@ logger = logging.getLogger(__name__)
 _state: dict[str, Any] = {}
 
 
+def _health_response(*, ready: bool, status_text: str) -> HealthResponse:
+    return HealthResponse(
+        status=status_text,
+        model=settings.model,
+        device=settings.device,
+        ready=ready,
+    )
+
+
+def _clear_mps_cache() -> None:
+    if settings.device != "mps":
+        return
+
+    import torch
+
+    torch.mps.empty_cache()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Loading model %s (device=%s, fp16=%s)", settings.model, settings.device, settings.use_fp16)
     t0 = time.monotonic()
+    _state["ready"] = False
+    _state["inference_lock"] = asyncio.Lock()
 
     from FlagEmbedding import FlagReranker
 
@@ -36,8 +57,12 @@ async def lifespan(app: FastAPI):
     if settings.device == "mps":
         kwargs["devices"] = ["mps"]
 
-    _state["model"] = FlagReranker(settings.model, **kwargs)
-    _state["ready"] = True
+    try:
+        _state["model"] = FlagReranker(settings.model, **kwargs)
+        _state["ready"] = True
+    except Exception:
+        logger.exception("Failed to load model %s", settings.model)
+        raise
 
     elapsed = time.monotonic() - t0
     logger.info("Model loaded in %.1f s", elapsed)
@@ -55,19 +80,27 @@ app = FastAPI(
 )
 
 
+@app.get("/livez", response_model=HealthResponse)
+async def livez():
+    return _health_response(ready=_state.get("ready", False), status_text="ok")
+
+
+@app.get("/readyz", response_model=HealthResponse)
+async def readyz(response: Response):
+    ready = _state.get("ready", False)
+    if not ready:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    return _health_response(ready=ready, status_text="ok" if ready else "loading")
+
+
 @app.get("/healthz", response_model=HealthResponse)
-async def healthz():
-    return HealthResponse(
-        status="ok" if _state.get("ready") else "loading",
-        model=settings.model,
-        device=settings.device,
-        ready=_state.get("ready", False),
-    )
+async def healthz(response: Response):
+    return await readyz(response)
 
 
 @app.get("/health", response_model=HealthResponse)
-async def health():
-    return await healthz()
+async def health(response: Response):
+    return await readyz(response)
 
 
 @app.post("/v1/rerank", response_model=RerankResponse)
@@ -76,17 +109,16 @@ async def rerank(request: RerankRequest):
         raise HTTPException(status_code=503, detail="Model not ready")
 
     model = _state["model"]
+    inference_lock: asyncio.Lock = _state["inference_lock"]
     pairs = [[request.query, doc] for doc in request.documents]
 
     logger.info("Reranking %d pairs (normalize=%s)", len(pairs), request.normalize)
 
-    t0 = time.monotonic()
-    scores = model.compute_score(pairs, normalize=request.normalize)
-    elapsed = time.monotonic() - t0
-
-    if settings.device == "mps":
-        import torch
-        torch.mps.empty_cache()
+    async with inference_lock:
+        t0 = time.monotonic()
+        scores = await asyncio.to_thread(model.compute_score, pairs, normalize=request.normalize)
+        elapsed = time.monotonic() - t0
+        _clear_mps_cache()
 
     if isinstance(scores, (int, float)):
         scores = [scores]
