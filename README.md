@@ -144,3 +144,16 @@ Measured on Apple M4 Max with MPS/Metal and fp32:
 | BGE-M3 | ~2.2 GB | ~2 GB |
 | BGE-Reranker-v2-m3 | ~2.2 GB | ~1 GB |
 | **Total** | **~4.4 GB** | **~3-4 GB with runtime overhead** |
+
+## License
+
+This project is licensed under the [MIT License](LICENSE). If you use or adapt it, keep the copyright and license notice with your copy (see the `LICENSE` file).
+
+## Maintainer & contact
+
+**Aleksandr Mordvinov** ([@FUYOH666](https://github.com/FUYOH666)) — questions, ideas, or collaboration:
+
+- Email: [iamfuyoh@gmail.com](mailto:iamfuyoh@gmail.com)
+- Telegram: [@ScanovichAI](https://t.me/ScanovichAI)
+
+See [AUTHORS.md](AUTHORS.md) for attribution notes (including third-party models and libraries). Security-sensitive reports: [SECURITY.md](SECURITY.md).

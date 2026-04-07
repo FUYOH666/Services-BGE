@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-04-06
+
+- added MIT `LICENSE`, maintainer contacts in `README.md`, `AUTHORS.md`, and `pyproject.toml`
+- added `SECURITY.md` for private vulnerability reports
+- use legal name **Aleksandr Mordvinov** in copyright and package metadata (GitHub: @FUYOH666)
+
 ## 2026-04-05
 
 - aligned `launchd`, `.env`, and service startup through `scripts/run_service.sh`

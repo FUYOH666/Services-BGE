@@ -3,6 +3,10 @@ name = "services-bge"
 version = "0.1.0"
 description = "BGE-M3 Embedding & BGE-Reranker-v2-m3 microservices for hybrid search in Qdrant"
 readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Aleksandr Mordvinov", email = "iamfuyoh@gmail.com" },
+]
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "FlagEmbedding>=1.3.0",
