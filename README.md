@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/services-bge-cover.png" alt="Services-BGE — BGE-M3 hybrid search on Apple Silicon" width="420">
+</p>
+
 # Services-BGE
 
 BGE-M3 embedding and BGE-Reranker-v2-m3 microservices for hybrid search on Apple Silicon.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-17
+
+- added project cover image at `assets/services-bge-cover.png` and show it at the top of `README.md`
+
 ## 2026-04-06
 
 - added MIT `LICENSE`, maintainer contacts in `README.md`, `AUTHORS.md`, and `pyproject.toml`
