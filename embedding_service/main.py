@@ -161,7 +161,9 @@ async def create_embeddings(request: EmbeddingRequest):
         item = EmbeddingItem(index=i)
 
         if dense_vecs is not None:
-            item.dense_embedding = dense_vecs[i].tolist()
+            dense_embedding = dense_vecs[i].tolist()
+            item.embedding = dense_embedding
+            item.dense_embedding = dense_embedding
 
         if lexical_weights is not None:
             item.sparse_embedding = readable_sparse[i] if readable_sparse else None

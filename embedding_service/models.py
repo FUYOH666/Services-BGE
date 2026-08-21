@@ -18,6 +18,9 @@ class SparseQdrant(BaseModel):
 
 class EmbeddingItem(BaseModel):
     index: int
+    # OpenAI-compatible clients (including OpenClaw memory search) read this
+    # canonical field. Keep dense_embedding for existing hybrid-search clients.
+    embedding: list[float] | None = None
     dense_embedding: list[float] | None = None
     sparse_embedding: dict[str, float] | None = None
     sparse_qdrant: SparseQdrant | None = None

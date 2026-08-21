@@ -127,6 +127,7 @@ def test_embedding_happy_path_response_shape(embedding_client):
     body = response.json()
     assert len(body["data"]) == 2
     assert len(body["data"][0]["dense_embedding"]) == 1024
+    assert body["data"][0]["embedding"] == body["data"][0]["dense_embedding"]
     assert body["data"][0]["sparse_qdrant"]["indices"] == [1, 2]
     assert body["data"][0]["sparse_embedding"] == {"tok_1": 0.8, "tok_2": 0.2}
     assert body["data"][0]["colbert_embedding"] == [[0.1, 0.2], [0.3, 0.4]]
