@@ -12,6 +12,8 @@ class RerankRequest(BaseModel):
     return_documents: bool = True
     # None = server default (RERANKER_MAX_LENGTH).
     max_length: int | None = Field(None, ge=1)
+    # Per-request task instruction for instruction-aware backends (qwen3-reranker).
+    instruction: str | None = None
     # Accepted for Cohere/Jina-client compatibility; the served model is fixed.
     model: str | None = None
 
@@ -30,6 +32,23 @@ class RerankResponse(BaseModel):
     results: list[RerankResult]
     model: str
     usage: RerankUsage
+
+
+class ModelCard(BaseModel):
+    id: str
+    object: str = "model"
+    owned_by: str = "local"
+    backend: str
+    instruction: str | None = None
+    max_length: int
+    max_length_cap: int
+    device: str
+    fp16: bool
+
+
+class ModelList(BaseModel):
+    object: str = "list"
+    data: list[ModelCard]
 
 
 class HealthResponse(BaseModel):

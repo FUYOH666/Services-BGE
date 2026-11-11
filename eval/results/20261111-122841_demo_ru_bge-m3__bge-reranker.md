@@ -1,6 +1,6 @@
-# Eval: bge-baseline-fp32 on demo_ru
+# Eval: bge-m3__bge-reranker on demo_ru
 
-2026-11-11T05:10:27+00:00 · corpus 36 · queries 36 · models {'embed': 'BAAI/bge-m3', 'rerank': 'BAAI/bge-reranker-v2-m3'}
+2026-11-11T05:28:41+00:00 · corpus 36 · queries 36 · models {'embed': 'BAAI/bge-m3', 'sparse': 'BAAI/bge-m3', 'rerank': 'BAAI/bge-reranker-v2-m3'}
 
 | run | recall@1 | recall@5 | recall@10 | mrr@10 | ndcg@10 | code2_acc@1 | code2_acc@5 | code4_acc@1 | code4_acc@5 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -10,4 +10,4 @@
 | dense+rerank@20 | 0.750 | 0.972 | 1.000 | 0.857 | 0.893 | 0.778 | 0.972 | 0.750 | 0.972 |
 | hybrid_rrf+rerank@20 | 0.750 | 0.972 | 1.000 | 0.858 | 0.894 | 0.778 | 1.000 | 0.750 | 0.972 |
 
-Index 0.3 s · query embed p50 31 ms / p95 35 ms · rerank p50 149 ms / p95 167 ms
+Index 0.3 s · query embed p50 32 ms / p95 34 ms · rerank p50 149 ms / p95 169 ms

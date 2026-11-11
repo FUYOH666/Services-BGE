@@ -149,9 +149,9 @@ def test_reranker_readiness_and_liveness(reranker_client):
 def test_warmup_runs_before_ready(embedding_client, reranker_client):
     _, emb = embedding_client
     _, rer = reranker_client
-    assert emb._state["model"].calls[0]["texts"] == ["warmup"]
+    assert emb._state["backend"].model.calls[0]["texts"] == ["warmup"]
     assert emb._state["dense_dim"] == DIM
-    assert rer._state["model"].calls[0]["pairs"] == [["warmup", "warmup"]]
+    assert rer._state["backend"].model.calls[0]["pairs"] == [["warmup", "warmup"]]
 
 
 # --- Embedding contract (fields used by downstream projects) ---------------
@@ -260,7 +260,7 @@ def test_embedding_max_length_defaults_to_settings(embedding_client, monkeypatch
 
     client.post("/v1/embeddings", json={"input": ["a"]})
 
-    assert module._state["model"].calls[-1]["max_length"] == 333
+    assert module._state["backend"].model.calls[-1]["max_length"] == 333
 
 
 def test_embedding_limits(embedding_client, monkeypatch):
@@ -334,15 +334,15 @@ def test_reranker_return_documents_false(reranker_client):
 
 def test_reranker_passes_batch_size_and_max_length(reranker_client, monkeypatch):
     client, module = reranker_client
-    monkeypatch.setattr(module.settings, "batch_size", 7)
+    monkeypatch.setattr(module._state["backend"], "batch_size", 7)
 
     client.post("/v1/rerank", json={"query": "q", "documents": ["a"], "max_length": 256})
-    call = module._state["model"].calls[-1]
+    call = module._state["backend"].model.calls[-1]
     assert call["batch_size"] == 7
     assert call["max_length"] == 256
 
     client.post("/v1/rerank", json={"query": "q", "documents": ["a"]})
-    assert module._state["model"].calls[-1]["max_length"] == module.settings.max_length
+    assert module._state["backend"].model.calls[-1]["max_length"] == module.settings.max_length
 
 
 def test_reranker_limits(reranker_client, monkeypatch):
@@ -364,3 +364,127 @@ def test_reranker_api_key(reranker_client, monkeypatch):
         client.post("/v1/rerank", json={"query": "q", "documents": ["a"]}, headers={"X-API-Key": "k"}).status_code
         == 200
     )
+
+
+# --- Discovery ---------------------------------------------------------------
+
+
+def test_models_endpoints_describe_backend(embedding_client, reranker_client):
+    emb_client, _ = embedding_client
+    rer_client, _ = reranker_client
+
+    emb = emb_client.get("/v1/models").json()["data"][0]
+    assert emb["id"] == "BAAI/bge-m3"
+    assert emb["backend"] == "bge-m3"
+    assert emb["capabilities"] == {"dense": True, "sparse": True, "colbert": True, "matryoshka": False, "prompts": False}
+    assert emb["dimensions"] == DIM
+
+    rer = rer_client.get("/v1/models").json()["data"][0]
+    assert rer["backend"] == "flag-reranker"
+
+
+def test_flag_reranker_rejects_instruction(reranker_client):
+    client, _ = reranker_client
+    response = client.post("/v1/rerank", json={"query": "q", "documents": ["a"], "instruction": "classify customs codes"})
+    assert response.status_code == 400
+
+
+# --- sentence-transformers embedding backend --------------------------------
+
+
+class FakeSTModel:
+    def __init__(self, model_name, device=None, trust_remote_code=False):
+        self.model_name = model_name
+        self.device = device
+        self.tokenizer = FakeTokenizer()
+        self.prompts = {"query": "Instruct: find\nQuery:"}
+        self.max_seq_length = 512
+        self.calls: list[dict] = []
+
+    def half(self):
+        return self
+
+    def encode(self, texts, batch_size=32, normalize_embeddings=True, convert_to_numpy=True,
+               show_progress_bar=False, truncate_dim=None, prompt=None, prompt_name=None):
+        import numpy as np
+
+        self.calls.append({"texts": list(texts), "prompt": prompt, "prompt_name": prompt_name, "truncate_dim": truncate_dim})
+        dim = truncate_dim or 8
+        out = np.ones((len(texts), dim), dtype=np.float32)
+        return out / np.linalg.norm(out, axis=1, keepdims=True)
+
+
+@pytest.fixture
+def st_embedding_client(monkeypatch):
+    monkeypatch.setitem(sys.modules, "FlagEmbedding", _fake_flagembedding())
+    monkeypatch.setitem(sys.modules, "sentence_transformers", SimpleNamespace(SentenceTransformer=FakeSTModel))
+    module = importlib.import_module("embedding_service.main")
+    module._state.clear()
+    for key, value in {
+        "device": "cpu",
+        "api_key": None,
+        "backend": "sentence-transformers",
+        "model": "Qwen/Qwen3-Embedding-0.6B",
+        "query_prompt_name": "query",
+        "matryoshka": True,
+    }.items():
+        monkeypatch.setattr(module.settings, key, value, raising=False)
+
+    with TestClient(module.app) as client:
+        yield client, module
+
+    module._state.clear()
+
+
+def test_st_backend_dense_only_and_prompts(st_embedding_client):
+    client, module = st_embedding_client
+    model = module._state["backend"].model
+
+    body = client.post("/v1/embeddings", json={"input": ["труба"], "input_type": "query"}).json()
+    item = body["data"][0]
+    assert len(item["embedding"]) == 8
+    assert item["sparse_qdrant"] is None
+    assert model.calls[-1]["prompt_name"] == "query"
+    # Query prompt tokens are counted: "Instruct: find\nQuery:труба" -> 3 words + 2
+    assert body["usage"]["total_tokens"] == 5
+
+    client.post("/v1/embeddings", json={"input": ["труба"]})
+    assert model.calls[-1]["prompt_name"] is None
+
+    assert client.get("/v1/models").json()["data"][0]["capabilities"]["sparse"] is False
+
+
+def test_st_backend_rejects_explicit_sparse(st_embedding_client):
+    client, _ = st_embedding_client
+    assert client.post("/v1/embeddings", json={"input": ["a"], "return_sparse": True}).status_code == 400
+    assert client.post("/v1/embeddings", json={"input": ["a"], "return_colbert": True}).status_code == 400
+
+
+def test_st_backend_matryoshka_dimensions(st_embedding_client):
+    client, module = st_embedding_client
+
+    body = client.post("/v1/embeddings", json={"input": ["a"], "dimensions": 4}).json()
+    assert len(body["data"][0]["embedding"]) == 4
+    assert module._state["backend"].model.calls[-1]["truncate_dim"] == 4
+    assert client.post("/v1/embeddings", json={"input": ["a"], "dimensions": 16}).status_code == 400
+
+
+def test_unknown_backend_fails_fast(monkeypatch):
+    from embedding_service.backends import load_backend as load_embedding
+    from reranker_service.backends import load_backend as load_reranker
+
+    with pytest.raises(ValueError, match="EMBEDDING_BACKEND"):
+        load_embedding(SimpleNamespace(backend="nope"), "m")
+    with pytest.raises(ValueError, match="RERANKER_BACKEND"):
+        load_reranker(
+            SimpleNamespace(backend="nope", device="cpu", use_fp16=False, batch_size=1, trust_remote_code=False, instruction=None),
+            "m",
+        )
+
+
+def test_sigmoid_matches_normalized_scores():
+    from reranker_service.backends import _sigmoid
+
+    assert _sigmoid(0.0) == 0.5
+    assert _sigmoid(-800.0) == pytest.approx(0.0)
+    assert _sigmoid(800.0) == pytest.approx(1.0)

@@ -11,8 +11,11 @@ class EmbeddingRequest(BaseModel):
     # Accepted for OpenAI-client compatibility; the served model is fixed.
     model: str | None = None
     encoding_format: Literal["float", "base64"] = "float"
-    # OpenAI `dimensions`; bge-m3 is not Matryoshka, so only the native size is valid.
+    # OpenAI `dimensions`. Only Matryoshka backends accept a smaller size.
     dimensions: int | None = Field(None, ge=1)
+    # Cohere/Voyage-style hint for asymmetric models: queries get the query
+    # prompt, documents the document prompt. Ignored by bge-m3.
+    input_type: Literal["query", "document"] | None = None
     user: str | None = None
     return_dense: bool = True
     return_sparse: bool = True
@@ -60,6 +63,24 @@ class EmbeddingResponse(BaseModel):
     data: list[EmbeddingItem]
     model: str
     usage: UsageInfo
+
+
+class ModelCard(BaseModel):
+    id: str
+    object: str = "model"
+    owned_by: str = "local"
+    backend: str
+    capabilities: dict[str, bool]
+    dimensions: int | None = None
+    max_length: int
+    max_length_cap: int
+    device: str
+    fp16: bool
+
+
+class ModelList(BaseModel):
+    object: str = "list"
+    data: list[ModelCard]
 
 
 class HealthResponse(BaseModel):

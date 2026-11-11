@@ -9,6 +9,9 @@ os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 class RerankerSettings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 9002
+    # Backend that scores pairs: "flag-reranker" (FlagEmbedding cross-encoders),
+    # "cross-encoder" (sentence-transformers) or "qwen3-reranker" (yes/no logits).
+    backend: str = "flag-reranker"
     model: str = "BAAI/bge-reranker-v2-m3"
     # Optional Hugging Face revision (commit sha or tag) for reproducible restarts.
     model_revision: str | None = None
@@ -31,6 +34,9 @@ class RerankerSettings(BaseSettings):
     # 0 = clear the MPS cache after every request (historical behaviour);
     # >0 = clear only when the Metal driver holds more than this many MB.
     mps_cache_threshold_mb: int = 0
+    # Task instruction for instruction-aware rerankers (qwen3-reranker).
+    instruction: str | None = None
+    trust_remote_code: bool = False
     # Optional shared secret. Empty = no auth (local-only default).
     api_key: str | None = Field(
         default=None,

@@ -4,8 +4,28 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_DIR"
 
-# Snapshot variables passed in by the caller so they win over .env
-# (lets you start a side copy on other ports without editing .env).
+usage() {
+    echo "Usage: $(basename "$0") <embedding|reranker>"
+    echo "       $(basename "$0") --profile <name>     (profiles/<name>.env, see profiles/README.md)"
+    exit 1
+}
+
+service=""
+profile=""
+case "${1:-}" in
+    --profile)
+        profile="${2:-}"
+        [ -n "$profile" ] || usage
+        ;;
+    embedding|reranker)
+        service="$1"
+        ;;
+    *)
+        usage
+        ;;
+esac
+
+# Precedence: variables passed by the caller > profile > .env > built-in defaults.
 caller_env="$(export -p)"
 
 if [ -f "$PROJECT_DIR/.env" ]; then
@@ -15,12 +35,27 @@ if [ -f "$PROJECT_DIR/.env" ]; then
     set +a
 fi
 
+if [ -n "$profile" ]; then
+    profile_file="$PROJECT_DIR/profiles/$profile.env"
+    if [ ! -f "$profile_file" ]; then
+        echo "Unknown profile '$profile' (no $profile_file)"
+        exit 1
+    fi
+    set -a
+    # shellcheck disable=SC1090
+    source "$profile_file"
+    set +a
+    service="${PROFILE_SERVICE:-}"
+    if [ "$service" != "embedding" ] && [ "$service" != "reranker" ]; then
+        echo "Profile '$profile' must set PROFILE_SERVICE=embedding or PROFILE_SERVICE=reranker"
+        exit 1
+    fi
+fi
+
 eval "$caller_env"
 
 export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
 export PYTHONUNBUFFERED="${PYTHONUNBUFFERED:-1}"
-
-service="${1:-}"
 
 case "$service" in
     embedding)
@@ -42,10 +77,6 @@ case "$service" in
         access_log="${RERANKER_ACCESS_LOG:-true}"
         model="${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}"
         revision="${RERANKER_MODEL_REVISION:-}"
-        ;;
-    *)
-        echo "Usage: $(basename "$0") <embedding|reranker>"
-        exit 1
         ;;
 esac
 
@@ -76,7 +107,7 @@ case "$(printf '%s' "$access_log" | tr '[:upper:]' '[:lower:]')" in
     false|0|no|off) access_flag="--no-access-log" ;;
 esac
 
-echo "Starting $service on $host:$port (workers=$workers, log_level=$log_level, hf_offline=${HF_HUB_OFFLINE:-0})"
+echo "Starting $service${profile:+ (profile $profile)} on $host:$port (workers=$workers, log_level=$log_level, hf_offline=${HF_HUB_OFFLINE:-0})"
 exec uv run uvicorn "$module" \
     --host "$host" \
     --port "$port" \

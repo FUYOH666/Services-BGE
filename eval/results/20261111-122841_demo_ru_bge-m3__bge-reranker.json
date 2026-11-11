@@ -1,16 +1,18 @@
 {
-  "name": "bge-baseline-fp32",
-  "created_at": "2026-11-11T05:10:27+00:00",
+  "name": "bge-m3__bge-reranker",
+  "created_at": "2026-11-11T05:28:41+00:00",
   "dataset": "eval/datasets/demo_ru",
   "corpus_size": 36,
   "queries": 36,
   "endpoints": {
     "embed": "http://127.0.0.1:9001",
     "query_embed": "http://127.0.0.1:9001",
+    "sparse": null,
     "rerank": "http://127.0.0.1:9002"
   },
   "models": {
     "embed": "BAAI/bge-m3",
+    "sparse": "BAAI/bge-m3",
     "rerank": "BAAI/bge-reranker-v2-m3"
   },
   "params": {
@@ -22,11 +24,11 @@
     "dense_weight": 1.0
   },
   "timing": {
-    "index_seconds": 0.3080597090010997,
-    "query_embed_p50_ms": 31.207457999698818,
-    "query_embed_p95_ms": 35.272167006041855,
-    "rerank_p50_ms": 148.69558399368543,
-    "rerank_p95_ms": 167.02358299517073
+    "index_seconds": 0.31876862498756964,
+    "query_embed_p50_ms": 31.760833007865585,
+    "query_embed_p95_ms": 33.82974999840371,
+    "rerank_p50_ms": 149.44004199060146,
+    "rerank_p95_ms": 169.36849999183323
   },
   "results": {
     "dense": {

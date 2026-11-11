@@ -50,13 +50,22 @@ class Encoded:
         self.sparse = sparse
 
 
-def encode(client: httpx.Client, url: str, texts: list[str], batch: int, latencies: list[float], max_length: int | None) -> Encoded:
+def encode(
+    client: httpx.Client,
+    url: str,
+    texts: list[str],
+    batch: int,
+    latencies: list[float],
+    max_length: int | None,
+    input_type: str,
+) -> Encoded:
     dense_rows: list[list[float]] = []
     sparse_rows: list[dict[int, float]] = []
     has_sparse = True
     for start in range(0, len(texts), batch):
         chunk = texts[start : start + batch]
-        payload: dict = {"input": chunk, "return_dense": True, "return_sparse": True}
+        # input_type lets asymmetric models (Qwen3, e5) apply their query/document prompts.
+        payload: dict = {"input": chunk, "return_dense": True, "input_type": input_type}
         if max_length:
             payload["max_length"] = max_length
         t0 = time.perf_counter()
@@ -156,6 +165,10 @@ def main() -> int:
     parser.add_argument("--dataset", required=True, type=Path, help="folder with corpus.jsonl and queries.jsonl")
     parser.add_argument("--embed-url", default="http://127.0.0.1:9001")
     parser.add_argument("--query-embed-url", help="separate endpoint for queries (defaults to --embed-url)")
+    parser.add_argument(
+        "--sparse-url",
+        help="take sparse vectors from this endpoint (e.g. bge-m3 on 9001) when --embed-url is dense-only",
+    )
     parser.add_argument("--rerank-url", default="http://127.0.0.1:9002", help="empty string disables rerank")
     parser.add_argument("--rerank-k", type=int, default=20, help="candidates passed to the reranker")
     parser.add_argument("--dense-weight", type=float, default=1.0, help="dense weight in RRF (sparse weight is 1)")
@@ -181,9 +194,14 @@ def main() -> int:
 
     with httpx.Client(timeout=600) as client:
         t0 = time.perf_counter()
-        docs = encode(client, embed_url, [d["text"] for d in corpus], args.batch, embed_lat, args.max_length)
+        docs = encode(client, embed_url, [d["text"] for d in corpus], args.batch, embed_lat, args.max_length, "document")
         index_seconds = time.perf_counter() - t0
-        qs = encode(client, query_url, [q["query"] for q in queries], 1, query_lat, args.max_length)
+        qs = encode(client, query_url, [q["query"] for q in queries], 1, query_lat, args.max_length, "query")
+
+        if args.sparse_url and (docs.sparse is None or qs.sparse is None):
+            sparse_url = args.sparse_url.rstrip("/")
+            docs.sparse = encode(client, sparse_url, [d["text"] for d in corpus], args.batch, [], args.max_length, "document").sparse
+            qs.sparse = encode(client, sparse_url, [q["query"] for q in queries], args.batch, [], args.max_length, "query").sparse
 
         dense_rank = [list(np.argsort(-(docs.dense @ qv))[:k]) for qv in qs.dense]
         runs: dict[str, list[list[int]]] = {"dense": dense_rank}
@@ -213,7 +231,12 @@ def main() -> int:
                 runs[f"{base_name}+rerank@{args.rerank_k}"] = reranked
 
         model_info = {}
-        for label, url, path in (("embed", embed_url, "/readyz"), ("rerank", rerank_url, "/readyz")):
+        sparse_source = args.sparse_url.rstrip("/") if args.sparse_url else (embed_url if "sparse" in runs else "")
+        for label, url, path in (
+            ("embed", embed_url, "/readyz"),
+            ("sparse", sparse_source, "/readyz"),
+            ("rerank", rerank_url, "/readyz"),
+        ):
             if not url:
                 continue
             try:
@@ -234,7 +257,7 @@ def main() -> int:
         "dataset": str(args.dataset),
         "corpus_size": len(corpus),
         "queries": len(queries),
-        "endpoints": {"embed": embed_url, "query_embed": query_url, "rerank": rerank_url or None},
+        "endpoints": {"embed": embed_url, "query_embed": query_url, "sparse": args.sparse_url, "rerank": rerank_url or None},
         "models": model_info,
         "params": {"retrieve_k": k, "rerank_k": args.rerank_k, "batch": args.batch, "max_length": args.max_length, "rrf_k": RRF_K, "dense_weight": args.dense_weight},
         "timing": {
