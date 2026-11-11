@@ -179,7 +179,7 @@ Memory holds two kinds of text, and `memory_status` (or `uv run services-bge-mcp
 
 | What | Where | Tier | Who writes it |
 |---|---|---|---|
-| **The team canon**: the files every agent is told to read first (`CANON.md`, `STATE.md`, `ORG.md`, `AGENTS.md`, `repos.md`) and the decision records (`decisions/`) | collection `canon` | `canon` | only `services-bge-mcp sync`, from a read-only git clone; the commit is recorded |
+| **The team canon**: the files every agent is told to read first (`CANON.md`, `STATE.md`, `ORG.md`, `AGENTS.md`, `repos.md`), the decision records (`decisions/`) and one card per project (`projects/`) | collection `canon` | `canon` | only `services-bge-mcp sync`, from a read-only git clone; the commit is recorded |
 | Open proposals in the canon repository's `inbox/` (frontmatter `status: proposed`) | collection `canon` | `inbox` | the same sync |
 | Agents' own notes and the files they choose to save (`remember`) | the collection they name, `memory` by default | `inbox` once a canon is synced | any connected agent |
 
@@ -211,6 +211,19 @@ uv run services-bge-mcp status
 - **When to run it.** Run it after the canon changes, by hand or from your own scheduler. Running it twice in a row changes nothing.
 
 Which files count as canon is set by `MCP_CANON_FILES` and `MCP_CANON_INBOX`; all settings are in [CONFIGURATION.md](CONFIGURATION.md#mcp-server-mcp_).
+
+### Keep it fresh automatically
+
+The canon changes through pull requests; the index should follow without anyone remembering to sync. One opt-in launchd agent does that:
+
+```bash
+./scripts/service.sh memory-sync on       # pull + re-index at login and every 30 minutes
+./scripts/service.sh memory-sync status   # on/off, last exit code, what is indexed
+./scripts/service.sh memory-sync now      # one sync right now
+./scripts/service.sh memory-sync off      # stop; the index keeps its last state
+```
+
+A run only reads the canon clone (fast-forward pull) and re-embeds the passages that changed, so a quiet canon costs a few seconds. If the services or Qdrant are down, the run fails and the next one retries; agents keep searching the last good index, or fall back to keyword search. Log: `~/Library/Logs/Services-BGE/memory-sync.log`.
 
 ## When a service is down
 

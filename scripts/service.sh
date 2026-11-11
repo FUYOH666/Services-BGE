@@ -27,6 +27,9 @@ Commands:
   restart     Stop then start both services
   status      Show PID, readiness, and log paths
   logs        Tail logs from both services (Ctrl+C to stop)
+  memory-sync on|off|now|status
+              Keep the agents' shared memory fresh: a launchd agent pulls the team
+              canon and re-indexes it at login and every 30 minutes (opt-in)
   rotate-logs Archive and truncate log files larger than ROTATE_MAX_MB (default 10),
               keeping ROTATE_KEEP (default 5) gzip archives per file
 
@@ -235,6 +238,48 @@ cmd_logs() {
     tail -f "$LOG_DIR"/embedding.log "$LOG_DIR"/reranker.log "$LOG_DIR"/embedding.err "$LOG_DIR"/reranker.err 2>/dev/null
 }
 
+SYNC_LABEL="com.services-bge.memory-sync"
+
+cmd_memory_sync() {
+    local action="${1:-status}"
+    local src="$LAUNCHD_DIR/$SYNC_LABEL.plist"
+    local dst="$AGENTS_DIR/$SYNC_LABEL.plist"
+
+    case "$action" in
+        on)
+            mkdir -p "$AGENTS_DIR" "$LOG_DIR"
+            chmod +x "$PROJECT_DIR/scripts/memory_sync.sh"
+            render_plist "$src" "$dst"
+            launchctl bootout "$LAUNCHD_DOMAIN/$SYNC_LABEL" 2>/dev/null || true
+            launchctl bootstrap "$LAUNCHD_DOMAIN" "$dst"
+            echo "Memory auto-sync is on: at login and every 30 minutes."
+            echo "  Log: $LOG_DIR/memory-sync.log   Turn off: ./scripts/service.sh memory-sync off"
+            ;;
+        off)
+            launchctl bootout "$LAUNCHD_DOMAIN/$SYNC_LABEL" 2>/dev/null || true
+            rm -f "$dst"
+            echo "Memory auto-sync is off. The index keeps its last state; search still works."
+            ;;
+        now)
+            "$PROJECT_DIR/scripts/memory_sync.sh"
+            ;;
+        status)
+            if launchctl print "$LAUNCHD_DOMAIN/$SYNC_LABEL" &>/dev/null; then
+                local last
+                last="$(launchctl print "$LAUNCHD_DOMAIN/$SYNC_LABEL" 2>/dev/null | awk -F'= ' '/last exit code/{print $2; exit}')"
+                echo "Memory auto-sync: on (every 30 minutes; last exit code: ${last:-never ran})"
+            else
+                echo "Memory auto-sync: off (turn on: ./scripts/service.sh memory-sync on)"
+            fi
+            (cd "$PROJECT_DIR" && uv run --quiet services-bge-mcp status 2>/dev/null | head -3) || true
+            ;;
+        *)
+            echo "Usage: $(basename "$0") memory-sync on|off|now|status"
+            exit 1
+            ;;
+    esac
+}
+
 cmd_rotate_logs() {
     local max_mb="${ROTATE_MAX_MB:-10}"
     local keep="${ROTATE_KEEP:-5}"
@@ -283,5 +328,6 @@ case "$1" in
     status)    cmd_status ;;
     logs)      cmd_logs ;;
     rotate-logs) cmd_rotate_logs ;;
+    memory-sync) cmd_memory_sync "${2:-status}" ;;
     *)         usage ;;
 esac

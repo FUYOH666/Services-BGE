@@ -67,6 +67,10 @@ hermes mcp list
 
 Or delete the `services-bge:` block under `mcp_servers:` in `~/.hermes/config.yaml`. If Hermes runs as a gateway, restart it so the change is picked up.
 
+### Memory auto-sync
+
+If you turned on `./scripts/service.sh memory-sync on`, turn it off with `./scripts/service.sh memory-sync off`. That removes the launchd agent `com.services-bge.memory-sync`; the index keeps its last state.
+
 ## Restore a backup instead
 
 Every config file was copied before the change. Restoring the copy brings the file back exactly as it was at that moment — but it also discards any other change you made to that file **after** the setup, so prefer the commands above.

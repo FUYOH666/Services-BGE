@@ -10,6 +10,7 @@ How the services run on a Mac, how to change them safely, and what to check when
 ./scripts/service.sh status       # launchd state, PID, readiness
 ./scripts/service.sh restart      # after editing .env or pulling a new version
 ./scripts/service.sh logs         # tail all four log files
+./scripts/service.sh memory-sync on   # keep the agents' shared memory index fresh (every 30 min)
 ./scripts/service.sh rotate-logs  # gzip + truncate files over ROTATE_MAX_MB (10), keep ROTATE_KEEP (5)
 ./scripts/service.sh stop
 ./scripts/service.sh uninstall    # stop and remove the plists; logs are kept

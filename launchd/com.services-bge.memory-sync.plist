@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.services-bge.memory-sync</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__PROJECT_DIR__/scripts/memory_sync.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__PROJECT_DIR__</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>TOKENIZERS_PARALLELISM</key>
+        <string>false</string>
+        <key>HOME</key>
+        <string>__HOME__</string>
+        <key>PATH</key>
+        <string>__LAUNCHD_PATH__</string>
+    </dict>
+
+    <!-- Once at login, then every 30 minutes. A failed run (services or Qdrant down)
+         is retried at the next interval; search keeps the last good index meanwhile. -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StartInterval</key>
+    <integer>1800</integer>
+
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/memory-sync.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/memory-sync.err</string>
+</dict>
+</plist>
