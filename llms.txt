@@ -1,11 +1,13 @@
 # Services-BGE
 
-> Local embedding and reranking APIs for hybrid search on Apple Silicon Macs, plus tools to compare models on your own data. Serves BAAI/bge-m3 (dense 1024 + sparse lexical weights + ColBERT vectors in one pass) on http://127.0.0.1:9001/v1/embeddings (OpenAI-compatible; works with the official OpenAI SDK via base_url) and BAAI/bge-reranker-v2-m3 on http://127.0.0.1:9002/v1/rerank (Cohere/Jina-style). Other models (Qwen3-Embedding, Qwen3-Reranker, multilingual-e5, any SentenceTransformer) run as sidecars from profiles/*.env; eval/run_eval.py measures recall, nDCG, MRR and HS-code accuracy. Sparse output is shaped for Qdrant sparse vectors. PyTorch MPS, launchd, Python 3.12, MIT license.
+> Local embedding and reranking APIs for hybrid search on Apple Silicon Macs, plus tools to compare models on your own data. Serves BAAI/bge-m3 (dense 1024 + sparse lexical weights + ColBERT vectors in one pass) on http://127.0.0.1:9001/v1/embeddings (OpenAI-compatible; works with the official OpenAI SDK via base_url) and BAAI/bge-reranker-v2-m3 on http://127.0.0.1:9002/v1/rerank (Cohere/Jina-style). Other models (Qwen3-Embedding, Qwen3-Reranker, multilingual-e5, any SentenceTransformer) run as sidecars from profiles/*.env; eval/run_eval.py measures recall, nDCG, MRR and HS-code accuracy. Sparse output is shaped for Qdrant sparse vectors. An MCP server (`services-bge-mcp`, stdio or streamable HTTP on http://127.0.0.1:9003/mcp) gives AI agents shared long-term memory on top of the same stack: tools remember, search (bge-m3 dense + sparse with RRF fusion in Qdrant, then reranked), list_collections, list_sources, forget, rerank and embed. PyTorch MPS, launchd, Python 3.12, MIT license.
 
 ## Docs
 
 - [README](https://github.com/FUYOH666/Services-BGE/blob/main/README.md): what it does, quick start, models, benchmarks, FAQ
 - [API reference](https://github.com/FUYOH666/Services-BGE/blob/main/docs/API.md): request and response fields, errors, Qdrant hybrid-search example
+- [Agent memory (MCP server)](https://github.com/FUYOH666/Services-BGE/blob/main/docs/AGENT-MEMORY.md): connect Claude Code, Cursor, OpenClaw, Hermes or any MCP client; tools, collections, safety
+- [Agent memory rollback](https://github.com/FUYOH666/Services-BGE/blob/main/docs/AGENT-ROLLBACK.md): disconnect an agent, restore config backups, delete stored memory
 - [Models, backends and profiles](https://github.com/FUYOH666/Services-BGE/blob/main/docs/MODELS.md): how to switch and add models, 2026 model landscape
 - [Configuration](https://github.com/FUYOH666/Services-BGE/blob/main/docs/CONFIGURATION.md): every environment variable
 - [AGENTS.md](https://github.com/FUYOH666/Services-BGE/blob/main/AGENTS.md): layout, commands, rules for coding agents

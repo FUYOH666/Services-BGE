@@ -9,7 +9,7 @@ authors:
     alias: FUYOH666
 repository-code: "https://github.com/FUYOH666/Services-BGE"
 license: MIT
-version: 0.2.0
+version: 0.3.0
 date-released: 2026-11-11
 keywords:
   - embeddings
