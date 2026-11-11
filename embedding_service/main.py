@@ -122,7 +122,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Services-BGE · Embedding",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 

@@ -1,6 +1,6 @@
 [project]
 name = "services-bge"
-version = "0.2.0"
+version = "0.3.0"
 description = "Local OpenAI-compatible embedding and reranking services (bge-m3, Qwen3, any SentenceTransformer) for hybrid search on Apple Silicon, with an MCP memory server for AI agents, model profiles and a retrieval eval harness"
 readme = "README.md"
 license = { text = "MIT" }

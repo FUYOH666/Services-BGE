@@ -141,7 +141,7 @@ uv run python scripts/mcp_smoke.py                                    # remember
 claude mcp add --scope user services-bge -- "$(pwd)/scripts/mcp.sh"   # Claude Code; Cursor, OpenClaw, Hermes — в руководстве
 ```
 
-Подключение каждого агента, инструменты, правила коллекций и безопасность: **[docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)** (на английском).
+Подключение каждого агента, инструменты, правила коллекций и безопасность: **[docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)** (на английском). Подключение только добавляет одну запись `services-bge` в настройки агента; как отключить и откатить: [docs/AGENT-ROLLBACK.md](docs/AGENT-ROLLBACK.md).
 
 **Прямые API.** Сервисы слушают `127.0.0.1` и говорят на протоколах, которые агенты уже знают. Официальный OpenAI SDK работает без изменений:
 

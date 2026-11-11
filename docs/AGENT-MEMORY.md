@@ -11,6 +11,7 @@ Unlike the official Qdrant MCP server, which embeds with its own small FastEmbed
 - [Collections, sources and updates](#collections-sources-and-updates)
 - [Safety](#safety)
 - [Troubleshooting](#troubleshooting)
+- [Disconnect and roll back](AGENT-ROLLBACK.md)
 
 ## How it works
 
@@ -57,6 +58,8 @@ Agents start the server themselves through `scripts/mcp.sh` (stdio). Run it as a
 ```
 
 ## Connect an agent
+
+Each snippet adds exactly one server entry, `services-bge`, and changes nothing else in the agent's setup. Back up the config file first; [AGENT-ROLLBACK.md](AGENT-ROLLBACK.md) shows how to remove the entry or restore the backup.
 
 The snippets use `/absolute/path/to/Services-BGE`: run `pwd` in the repository folder and paste the result. `scripts/mcp.sh` needs no arguments and finds `uv` even when the agent is a desktop app. After adding the server, restart or reload the agent and ask it: *"List your services-bge memory collections."*
 
