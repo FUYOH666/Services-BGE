@@ -1,227 +1,251 @@
 <p align="center">
-  <img src="assets/services-bge-cover.png" alt="Services-BGE — BGE-M3 hybrid search on Apple Silicon" width="420">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
+    <img src="docs/assets/banner-light.svg" alt="Services-BGE — local embeddings and reranking for hybrid search on Apple Silicon" width="100%">
+  </picture>
 </p>
 
-# Services-BGE
+<p align="center">
+  <a href="https://github.com/FUYOH666/Services-BGE/releases/latest"><img src="https://img.shields.io/github/v/release/FUYOH666/Services-BGE?color=7C3AED&label=release" alt="Latest release"></a>
+  <a href="https://github.com/FUYOH666/Services-BGE/actions/workflows/test.yml"><img src="https://github.com/FUYOH666/Services-BGE/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
+  <img src="https://img.shields.io/badge/macOS-Apple%20Silicon%20·%20MPS-111?logo=apple" alt="macOS, Apple Silicon, MPS">
+  <img src="https://img.shields.io/badge/API-OpenAI--compatible-2EA44F" alt="OpenAI-compatible API">
+  <img src="https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/FUYOH666/Services-BGE?color=555" alt="MIT license"></a>
+</p>
 
-[![tests](https://github.com/FUYOH666/Services-BGE/actions/workflows/test.yml/badge.svg)](https://github.com/FUYOH666/Services-BGE/actions/workflows/test.yml)
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#models">Models</a> ·
+  <a href="#compare-models-on-your-data">Compare models</a> ·
+  <a href="#for-ai-agents">For AI agents</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#faq">FAQ</a> ·
+  <a href="README.ru.md">Русский</a>
+</p>
 
-BGE-M3 embedding and BGE-Reranker-v2-m3 microservices for hybrid search on Apple Silicon, plus an eval harness to compare them against newer models on your own data.
+**Run your own embedding and reranking API on a Mac, and prove which model is best for your data.** Services-BGE serves [BAAI/bge-m3](https://huggingface.co/BAAI/bge-m3) (dense + sparse + ColBERT vectors in one pass) and [bge-reranker-v2-m3](https://huggingface.co/BAAI/bge-reranker-v2-m3) as two local services for hybrid search in [Qdrant](https://qdrant.tech). Any other model — Qwen3-Embedding, Qwen3-Reranker, multilingual-e5 or any SentenceTransformer — runs next to them from a one-file profile, and a built-in eval harness scores them all on your own queries.
 
-## Architecture
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/how-it-works-dark.svg">
+    <img src="docs/assets/how-it-works-light.svg" alt="Texts are embedded into dense and sparse vectors, fused in Qdrant, reranked and returned as top-k results; challenger models run as sidecars and the eval harness compares them" width="100%">
+  </picture>
+</p>
 
-Two FastAPI services live in one project:
+## Why
 
-| Service | Model | Port | Purpose |
-|---------|-------|------|---------|
-| Embedding | `BAAI/bge-m3` | `9001` | Dense + sparse (+ optional ColBERT) vectors for hybrid search |
-| Reranker | `BAAI/bge-reranker-v2-m3` | `9002` | Cross-encoder relevance scoring |
+Retrieval quality decides what a RAG system, a search box or a classifier can ever find. Public leaderboards (MTEB and friends) rank models on generic web data; your domain — customs codes, part numbers, legal clauses, medical terms — behaves differently. A model that is #1 on a leaderboard can lose to an older one on your queries, and a reranker can make results *worse*.
 
-Runtime characteristics:
+Services-BGE gives you three things in one repository:
 
-- Apple Silicon, PyTorch `mps`, one worker per service, inference serialized per process
-- `launchd` for auto-start and crash restart
-- Explicit `readyz` and `livez` endpoints; models are warmed up before `readyz` turns green
-- Starts offline from the local Hugging Face cache, so a boot without network does not stall
-- Request limits, optional API key, MPS cache policy, all configured in `.env`
+1. **A production-ready hybrid retriever** on Apple Silicon: bge-m3 is still one of the strongest permissive models for multilingual and Russian retrieval, and it returns dense, sparse and multi-vector outputs from a single forward pass.
+2. **Model switching without code**: a profile file selects the backend, model, prompts and port; a challenger starts next to production with one command.
+3. **Evidence**: the eval harness measures recall, nDCG, MRR, code accuracy and latency for every combination, so model changes are decisions, not guesses.
 
-### Why launchd and not Docker on a Mac
+It was built for classifying product descriptions into customs (HS / ТН ВЭД) codes and now serves several RAG projects; nothing in it is specific to customs.
 
-Containers on macOS (Docker Desktop, Apple `container`, OrbStack) cannot reach the Apple GPU through Metal; Podman only forwards Vulkan for llama.cpp. PyTorch MPS therefore has to run natively, and `launchd` is the native supervisor. Docker remains the right tool for Qdrant and for a future Linux/CUDA deployment.
+## Quick start
 
-Ready-made servers (Text Embeddings Inference, llama.cpp, vllm-metal, MLX, Ollama, Docker Model Runner) can serve bge-m3 dense vectors, but as of November 2026 none of them returns bge-m3's sparse lexical weights and ColBERT vectors on Metal. That is why this project wraps FlagEmbedding itself.
-
-## Requirements
-
-- macOS on Apple Silicon
-- Python `3.12`
-- [uv](https://docs.astral.sh/uv/)
-- About `7.5 GB` of memory for both services in fp32 (measured physical footprint ≈ 3.7 GB per process on an M4 Max), plus headroom
-
-## Quick Start
+Apple Silicon Mac, Python 3.12 and [uv](https://docs.astral.sh/uv/):
 
 ```bash
-cd ~/development/Services-BGE
+git clone https://github.com/FUYOH666/Services-BGE.git && cd Services-BGE
 uv sync
-cp .env.example .env                  # optional, to customize host/ports/limits
-./scripts/service.sh install
+cp .env.example .env                  # optional: host, ports, limits, API key
+./scripts/service.sh install          # launchd agents: start at login, restart on crash
 ./scripts/service.sh start
-./scripts/service.sh status
+./scripts/service.sh status           # ready=True after ~30 s (first run downloads ~8.5 GB)
 ```
-
-Useful commands:
 
 ```bash
-./scripts/service.sh stop
-./scripts/service.sh restart
-./scripts/service.sh logs
-./scripts/service.sh rotate-logs      # gzip + truncate logs over 10 MB, keep 5 archives
-./scripts/service.sh uninstall
+curl http://127.0.0.1:9001/v1/embeddings -H 'Content-Type: application/json' \
+  -d '{"input": "seamless stainless steel pipe"}'
+
+curl http://127.0.0.1:9002/v1/rerank -H 'Content-Type: application/json' \
+  -d '{"query": "seamless stainless steel pipe", "documents": ["7304 Seamless tubes", "7318 Screws, bolts"]}'
 ```
 
-`install` renders `launchd` plist files for the current machine and project path. Settings are read from `.env` by `scripts/run_service.sh`, so changing `.env` only requires `./scripts/service.sh restart`.
+`stop`, `restart`, `logs`, `rotate-logs` and `uninstall` do what they say. For a foreground run without launchd: `./scripts/start_all.sh`.
 
-Logs are written to `~/Library/Logs/Services-BGE/`. Per-request inference lines are logged at `DEBUG`; requests slower than `*_SLOW_REQUEST_MS` are logged at `WARNING`.
+## Features
 
-Manual foreground fallback:
+- **Hybrid vectors in one call.** Dense 1024-d, sparse lexical weights already shaped for Qdrant (`sparse_qdrant`), and optional ColBERT multi-vectors.
+- **OpenAI-compatible.** `/v1/embeddings` works with the official `openai` SDK (string or list input, `encoding_format=base64`, `dimensions`, real `usage`); `/v1/rerank` follows the Cohere/Jina shape.
+- **Pluggable models.** Backends for bge-m3, any SentenceTransformer (with query/document prompts and Matryoshka sizes), FlagEmbedding and sentence-transformers cross-encoders, and Qwen3-Reranker with its official yes/no scoring.
+- **Sidecars for experiments.** `./scripts/sidecar.sh up <profile>` runs a challenger on its own port without touching production.
+- **Eval built in.** Dense, sparse, hybrid RRF and reranked runs; recall, nDCG, MRR, HS-code prefix accuracy, latency; one comparison table across runs.
+- **Safe defaults.** Loopback-only by default, optional API key, request limits, warm-up before ready, offline start from the local model cache.
+- **Proven compatibility.** Contract tests pin the response fields existing clients use; `parity_check.py` compares two deployments down to the last float.
+- **Runs itself.** `launchd` starts both services at login and restarts them on failure; logs rotate on demand.
+
+## Models
+
+Profiles live in [`profiles/`](profiles/). Production runs `bge-m3` + `bge-reranker-v2-m3` on 9001/9002; everything else is a sidecar on 9011+.
+
+| Profile | Model | Backend | Output | Licence | Status |
+|---|---|---|---|---|---|
+| `bge-m3` | [BAAI/bge-m3](https://huggingface.co/BAAI/bge-m3) | `bge-m3` | dense 1024 + sparse + ColBERT | MIT | production |
+| `bge-reranker-v2-m3` | [BAAI/bge-reranker-v2-m3](https://huggingface.co/BAAI/bge-reranker-v2-m3) | `flag-reranker` | relevance score | Apache-2.0 | production |
+| `qwen3-embedding-0.6b` | [Qwen/Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) | `sentence-transformers` | dense 1024, Matryoshka | Apache-2.0 | verified |
+| `multilingual-e5-large` | [intfloat/multilingual-e5-large](https://huggingface.co/intfloat/multilingual-e5-large) | `sentence-transformers` | dense 1024 | MIT | verified |
+| `qwen3-reranker-0.6b` | [Qwen/Qwen3-Reranker-0.6B](https://huggingface.co/Qwen/Qwen3-Reranker-0.6B) | `qwen3-reranker` | relevance score, instruction | Apache-2.0 | verified |
+| `qwen3-reranker-4b` | [Qwen/Qwen3-Reranker-4B](https://huggingface.co/Qwen/Qwen3-Reranker-4B) | `qwen3-reranker` | relevance score, instruction | Apache-2.0 | candidate |
+
+*Verified* = loaded and scored on an M4 Max through this repository. Adding a model is a new `.env` file; see [docs/MODELS.md](docs/MODELS.md) for backends, prompts, memory and the 2026 model landscape.
+
+## Compare models on your data
 
 ```bash
-./scripts/start_all.sh
-./scripts/stop_all.sh
+./scripts/sidecar.sh up qwen3-embedding-0.6b qwen3-reranker-0.6b
+
+# control: production bge-m3 + bge-reranker
+uv run python eval/run_eval.py --dataset eval/datasets/demo_ru --name control
+# challenger reranker on top of production retrieval
+uv run python eval/run_eval.py --dataset eval/datasets/demo_ru --rerank-url http://127.0.0.1:9012 --name qwen3-rerank
+# challenger dense model, still fused with bge-m3 sparse
+uv run python eval/run_eval.py --dataset eval/datasets/demo_ru --embed-url http://127.0.0.1:9011 \
+  --sparse-url http://127.0.0.1:9001 --name qwen3-embed
+
+uv run python eval/compare.py eval/results/*.json --metric recall@1
+./scripts/sidecar.sh down all
 ```
 
-Run a side copy (for example a branch or an fp16 profile) without touching the live services; variables set on the command line win over `.env`:
+On the bundled demo set (36 Russian product descriptions → HS headings, M4 Max, fp32) the matrix in [`eval/results/COMPARISON.md`](eval/results/COMPARISON.md) shows:
 
-```bash
-EMBEDDING_PORT=9101 ./scripts/run_service.sh embedding
-RERANKER_PORT=9102 RERANKER_USE_FP16=true ./scripts/run_service.sh reranker
-```
+| Retrieval | Reranker | recall@1 | nDCG@10 | Rerank latency (20 docs) |
+|---|---|---|---|---|
+| bge-m3 dense | Qwen3-Reranker-0.6B | **0.861** | **0.940** | ~580 ms |
+| bge-m3 dense | — | 0.806 | 0.906 | — |
+| bge-m3 dense | bge-reranker-v2-m3 | 0.750 | 0.893 | ~150 ms |
+| Qwen3-Embedding-0.6B dense | — | 0.694 | 0.867 | — |
+| bge-m3 dense + sparse, equal-weight RRF | — | 0.556 | 0.715 | — |
 
-## Health Endpoints
-
-Each service exposes:
-
-- `GET /livez` - process is alive
-- `GET /readyz` - model is loaded, warmed up and ready for inference
-- `GET /healthz` - backward-compatible alias for `readyz`
-- `GET /health` - backward-compatible alias for `readyz`
-
-```bash
-curl http://localhost:9001/readyz
-curl http://localhost:9002/readyz
-```
+It is a toy set — a pipeline check, not a verdict — but it already shows why measuring matters: here the default reranker *lowers* top-1 accuracy, naive hybrid fusion hurts, and a newer dense model does not beat bge-m3. Bring a held-out set from your domain ([format](eval/README.md)) before switching anything.
 
 ## API
 
-### Embedding — `POST /v1/embeddings`
-
-OpenAI-compatible (verified with the official Python `openai` SDK, which requests base64 by default), with hybrid-search extensions.
-
-```bash
-curl -X POST http://localhost:9001/v1/embeddings \
-  -H "Content-Type: application/json" \
-  -d '{
-    "input": ["бесшовные трубы из нержавеющей стали"],
-    "return_dense": true,
-    "return_sparse": true
-  }'
-```
-
-| Field | Default | Notes |
-|---|---|---|
-| `input` | required | a string or a list of strings |
-| `model`, `user` | — | accepted for OpenAI compatibility; the served model is fixed |
-| `encoding_format` | `float` | `base64` returns little-endian float32 base64 (≈7× smaller with `compact`) |
-| `dimensions` | — | only the native size (1024) is accepted; bge-m3 is not Matryoshka |
-| `return_dense` / `return_sparse` / `return_colbert` | `true` / `true` / `false` | |
-| `max_length` | `EMBEDDING_MAX_LENGTH` (512) | capped by `EMBEDDING_MAX_LENGTH_CAP` (8192) |
-| `compact` | `false` | omits the duplicate `dense_embedding`, the token-readable `sparse_embedding` and null fields |
-
-Response items always keep the fields existing clients rely on: `index`, `embedding` (OpenAI), `dense_embedding`, `sparse_embedding` (token → weight), `sparse_qdrant` (`indices`/`values`, ready for a Qdrant sparse vector) and `colbert_embedding`. `usage.total_tokens` reports the tokens the model actually saw.
-
-### Reranker — `POST /v1/rerank`
-
-```bash
-curl -X POST http://localhost:9002/v1/rerank \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "бесшовные трубы из нержавеющей стали",
-    "documents": ["7304 — Трубы бесшовные", "7318 — Винты, болты"],
-    "normalize": true,
-    "top_n": 1
-  }'
-```
-
-| Field | Default | Notes |
-|---|---|---|
-| `query`, `documents` | required | |
-| `top_n` | all | must be ≥ 1 |
-| `normalize` | `true` | sigmoid scores in `[0, 1]` |
-| `return_documents` | `true` | `false` returns only `index` + `relevance_score` (Cohere/Jina style) |
-| `max_length` | `RERANKER_MAX_LENGTH` (512) | query + document tokens, capped by `RERANKER_MAX_LENGTH_CAP` |
-
-### Errors and limits
-
-| Status | When |
+| Endpoint | Purpose |
 |---|---|
-| `401` | `SERVICE_API_KEY` (or a per-service key) is set and the request has no matching `Authorization: Bearer …` / `X-API-Key` header |
-| `413` | more than `EMBEDDING_MAX_ITEMS` (256) texts / `RERANKER_MAX_DOCUMENTS` (1000) documents, or a text longer than `*_MAX_TEXT_CHARS` |
-| `422` | invalid body, `top_n < 1`, or `max_length` above the cap |
-| `400` | unsupported `dimensions` |
-| `503` | model still loading |
+| `POST :9001/v1/embeddings` | Dense / sparse / ColBERT vectors; OpenAI request and response shape plus hybrid fields |
+| `POST :9002/v1/rerank` | Scores and orders documents for a query (`top_n`, `return_documents`, `instruction`) |
+| `GET /v1/models` | Served model, backend, capabilities, dimensions, limits |
+| `GET /readyz`, `/livez` | Readiness (model loaded and warmed up) and liveness |
 
-## Configuration
+Field reference, error codes, a complete Qdrant hybrid-search example and response samples: **[docs/API.md](docs/API.md)**. Every setting: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
-All runtime settings live in `.env` and are documented in `.env.example`. Highlights:
+## For AI agents
 
-- **Host** defaults to `127.0.0.1`. To expose the services on LAN or Tailscale set `EMBEDDING_HOST=0.0.0.0` / `RERANKER_HOST=0.0.0.0` **and** a `SERVICE_API_KEY`.
-- **Offline start**: when `HF_HUB_OFFLINE` is unset, `run_service.sh` turns it on automatically if the model is already cached. `*_MODEL_REVISION` pins a commit for reproducible restarts.
-- **MPS cache**: `*_MPS_CACHE_THRESHOLD_MB=0` empties the MPS cache after every request (historical behaviour that keeps memory flat). A positive value only empties it above that many MB of Metal driver memory, trading memory for latency.
-- **Precision**: `*_USE_FP16=false` by default. Measured on an M4 Max with torch 2.13, fp16 saves 0.6–1.2 GB per process with near-identical outputs, but the reranker gets slower on 32 pairs, so fp32 stays the default (details in [docs/ROADMAP.md](docs/ROADMAP.md)).
-- `service.sh` refuses to kill unrelated processes that already occupy `9001` or `9002`.
+Both services listen on `127.0.0.1` and speak protocols agents already know. The official OpenAI SDK works unchanged:
 
-## Testing
+```python
+from openai import OpenAI
 
-```bash
-uv run --extra dev pytest                                # fake models, no downloads; also runs in CI
-uv run python scripts/test_services.py                   # smoke test against running services
-uv run python scripts/test_services.py --embed-url http://127.0.0.1:9101 --rerank-url http://127.0.0.1:9102
+client = OpenAI(base_url="http://127.0.0.1:9001/v1", api_key="local")
+vectors = client.embeddings.create(model="BAAI/bge-m3", input=["seamless stainless steel pipe"])
+print(len(vectors.data[0].embedding))  # 1024
 ```
 
-The pytest suite includes contract tests that pin the response fields downstream projects read, so API changes stay additive.
+```python
+import httpx
 
-### Parity between two deployments
-
-`scripts/parity_check.py` compares a reference (A) and a candidate (B): dense cosine, sparse top-10 overlap, rerank Spearman and top-5 order, latency, response size and process memory. Use it before switching precision, upgrading torch/FlagEmbedding or deploying a branch:
-
-```bash
-uv run python scripts/parity_check.py \
-  --a-embed http://127.0.0.1:9001 --b-embed http://127.0.0.1:9101 \
-  --a-rerank http://127.0.0.1:9002 --b-rerank http://127.0.0.1:9102
+ranked = httpx.post("http://127.0.0.1:9002/v1/rerank", json={
+    "query": "seamless stainless steel pipe",
+    "documents": ["7304 Seamless tubes", "7306 Welded tubes", "7318 Screws, bolts"],
+    "top_n": 1,
+}).json()["results"]
 ```
 
-### Retrieval quality
+`GET /v1/models` tells an agent what the running model can do. For coding agents working on this repository: [AGENTS.md](AGENTS.md) and [llms.txt](llms.txt).
 
-`eval/run_eval.py` scores dense, sparse, hybrid RRF and reranked retrieval (recall, nDCG, MRR, HS-code prefix accuracy, latency) for any endpoint URLs. It is how challenger models are judged; see [eval/README.md](eval/README.md) and [docs/ROADMAP.md](docs/ROADMAP.md).
+## How it works
 
-## Operational Notes
+```mermaid
+flowchart LR
+    subgraph mac["Your Mac · Apple Silicon"]
+        direction LR
+        C["Apps and<br/>AI agents"] -->|"/v1/embeddings"| E["Embedding :9001<br/>bge-m3"]
+        E -->|"dense + sparse"| Q[("Qdrant<br/>RRF fusion")]
+        Q -->|"top-k candidates"| R["Reranker :9002<br/>bge-reranker-v2-m3"]
+        R -->|"ranked results"| C
+        S["Sidecars :9011+<br/>profiles/*.env"] -.->|"same API"| V["eval/<br/>run_eval.py"]
+        E -.-> V
+        R -.-> V
+    end
+```
 
-- Retrieval A/B plan (BGE stays the control, challengers on side ports 9011/9012): [docs/ROADMAP.md](docs/ROADMAP.md).
-- The canonical production path is `dense + sparse` vectors from BGE-M3 into Qdrant, then second-stage `reranker`; `colbert_embedding` is available for experiments but is not part of the default runtime contract.
-- With Qdrant ≥ 1.19 use the `/query` API (the legacy `/search` endpoints were removed): prefetch dense and sparse, fuse with (weighted) RRF, then rerank the top-k here.
-- If you still see `resource_tracker: leaked semaphore objects` during shutdown on macOS, treat it as a known platform/runtime warning unless it starts affecting startup or inference.
+- **Two FastAPI services**, one model each, on PyTorch MPS. A per-process lock serializes inference on the GPU; heavy calls run off the event loop.
+- **Backends** wrap the model library behind one interface (`embedding_service/backends.py`, `reranker_service/backends.py`), so the HTTP contract never changes when the model does.
+- **launchd, not Docker**: containers on macOS cannot reach the Apple GPU through Metal, so the services run natively. Docker remains the right home for Qdrant and for Linux/CUDA deployments.
+- **Why not TEI, Ollama or llama.cpp?** They serve bge-m3 dense vectors well, but as of November 2026 none returns bge-m3 sparse weights and ColBERT vectors on Metal. Sidecars can still point the eval at any of them.
 
 ## Performance
 
-Measured on Apple M4 Max with MPS and fp32 (warm, median, via `scripts/parity_check.py`):
+M4 Max, MPS, fp32, warm, median ([`scripts/parity_check.py`](scripts/parity_check.py)):
 
 | Operation | Latency |
-|-----------|---------|
-| BGE-M3 encode, 8 short texts, dense + sparse | ~55–65 ms |
-| BGE-M3 encode, 8 texts × ~450 tokens, dense + sparse | ~530 ms |
-| BGE-M3 encode, 1 short text, dense only | ~30 ms |
-| Reranker, 8 pairs | ~80 ms |
-| Reranker, 32 pairs | ~215 ms |
+|---|---|
+| bge-m3, 8 short texts, dense + sparse | 55–65 ms |
+| bge-m3, 8 texts × ~450 tokens, dense + sparse | ~530 ms |
+| bge-m3, 1 query, dense | ~30 ms |
+| bge-reranker-v2-m3, 8 / 32 pairs | ~80 / ~215 ms |
+| Qwen3-Reranker-0.6B, 20 pairs | ~580 ms |
 
-Response size for 16 mixed texts with dense + sparse: 708 KB default, 353 KB with `compact`, 99 KB with `compact` + `encoding_format=base64`.
+Memory: ~3.7 GB per production service (≈7.4 GB for both). Response size for 16 mixed texts: 708 KB by default, 353 KB with `compact`, 99 KB with `compact` + `base64`. fp16 saves 0.6–1.2 GB per process with near-identical vectors but is not faster on torch 2.13 / M4, so fp32 stays the default ([measurements](docs/ROADMAP.md)).
 
-## Resource Usage
+## FAQ
 
-| Model | Disk (HF cache) | Memory footprint (fp32) |
-|-------|------|-----------|
-| BGE-M3 | ~2.2 GB weights (the full snapshot incl. ONNX is ~6.4 GB) | ~3.7 GB |
-| BGE-Reranker-v2-m3 | ~2.1 GB | ~3.7 GB |
-| **Total** | | **~7.4 GB** |
+<details>
+<summary><b>Does any data leave my Mac?</b></summary>
 
-## License
+No. Services bind to `127.0.0.1` by default, run models locally and send no telemetry. The network is used only to download models from Hugging Face the first time; afterwards the services start in offline mode from the local cache.
+</details>
 
-This project is licensed under the [MIT License](LICENSE). If you use or adapt it, keep the copyright and license notice with your copy (see the `LICENSE` file).
+<details>
+<summary><b>Can I use it from another machine or over Tailscale?</b></summary>
 
-## Maintainer & contact
+Yes: set `EMBEDDING_HOST=0.0.0.0` / `RERANKER_HOST=0.0.0.0` and a `SERVICE_API_KEY` in `.env`, then `./scripts/service.sh restart`. Clients send `Authorization: Bearer <key>` or `X-API-Key: <key>`.
+</details>
 
-**Aleksandr Mordvinov** ([@FUYOH666](https://github.com/FUYOH666)) — questions, ideas, or collaboration:
+<details>
+<summary><b>Will an update break my existing clients?</b></summary>
 
-- Email: [iamfuyoh@gmail.com](mailto:iamfuyoh@gmail.com)
-- Telegram: [@ScanovichAI](https://t.me/ScanovichAI)
+The default responses are pinned by contract tests (`tests/test_service_endpoints.py`), and new options are opt-in. Before deploying a branch you can run it on side ports and compare it with production using `scripts/parity_check.py`.
+</details>
 
-See [AUTHORS.md](AUTHORS.md) for attribution notes (including third-party models and libraries). Security-sensitive reports: [SECURITY.md](SECURITY.md).
+<details>
+<summary><b>How do I try a model that has no profile yet?</b></summary>
+
+Copy the closest file in `profiles/`, change the model id, backend, prompts and port, then `./scripts/sidecar.sh up <name>`. [docs/MODELS.md](docs/MODELS.md) explains each backend and what to check.
+</details>
+
+<details>
+<summary><b>Linux, Windows or NVIDIA GPUs?</b></summary>
+
+The code is plain PyTorch, so `*_DEVICE=cuda` or `cpu` works, but the supervision scripts target macOS `launchd` and the project is tested on Apple Silicon. A Linux/CUDA container setup is on the [roadmap](docs/ROADMAP.md).
+</details>
+
+<details>
+<summary><b>Memory keeps growing on MPS</b></summary>
+
+By default the MPS cache is emptied after every request, which keeps memory flat. If you set `*_MPS_CACHE_THRESHOLD_MB`, the cache is emptied only above that threshold. Logs live in `~/Library/Logs/Services-BGE/`; see [docs/OPERATIONS.md](docs/OPERATIONS.md).
+</details>
+
+## Roadmap
+
+The retrieval A/B plan, the November 2026 model landscape (licences, quantization rules, fp16 measurements) and the gate a challenger must pass to replace production: [docs/ROADMAP.md](docs/ROADMAP.md). Next up: the held-out HS-code evaluation, Qwen3-Reranker-4B, micro-batching across concurrent clients, Prometheus metrics and a Linux/CUDA compose file.
+
+## For teams
+
+Services-BGE is free and open source; run it yourself. If you want retrieval tuned for your documents — evaluation on your data, model selection, Qdrant pipelines, integration with your agents — write to [private@scanovich.ai](mailto:private@scanovich.ai) or Telegram [@ScanovichAI](https://t.me/ScanovichAI).
+
+## Contributing
+
+Issues and pull requests are welcome: [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md). Changes: [CHANGELOG.md](CHANGELOG.md). If you use the eval harness or results in research, see [CITATION.cff](CITATION.cff).
+
+## Acknowledgments
+
+[BGE-M3 and bge-reranker](https://github.com/FlagOpen/FlagEmbedding) by BAAI · [Qwen3 Embedding and Reranker](https://github.com/QwenLM/Qwen3-Embedding) by the Qwen team · [multilingual-e5](https://huggingface.co/intfloat/multilingual-e5-large) by Microsoft · [sentence-transformers](https://www.sbert.net) · [PyTorch](https://pytorch.org) · [FastAPI](https://fastapi.tiangolo.com) · [Qdrant](https://qdrant.tech) · [uv](https://github.com/astral-sh/uv).
+
+MIT License · maintained by [Aleksandr Mordvinov](https://github.com/FUYOH666) ([AUTHORS.md](AUTHORS.md)).

@@ -9,3 +9,4 @@ build/
 .pytest_cache/
 /tmp/
 *.log
+.DS_Store

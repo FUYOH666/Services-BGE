@@ -1,6 +1,8 @@
 # Roadmap — retrieval A/B
 
-Status: **ready to start once a real HS-code golden set exists.** Written 2026-09-10, updated **2026-11-11**.
+Status: **tooling done; waiting for a real HS-code golden set.** Written 2026-09-10, updated **2026-11-11**.
+
+Phase 1 needs no new code any more: `./scripts/sidecar.sh up qwen3-reranker-0.6b qwen3-reranker-4b`, then `eval/run_eval.py --rerank-url http://127.0.0.1:9012` (and `:9014`) against the control, then `eval/compare.py`. Phase 2: `sidecar.sh up qwen3-embedding-0.6b` and `run_eval.py --embed-url http://127.0.0.1:9011 --sparse-url http://127.0.0.1:9001`. Port plan below still holds (9014 added for the 4B reranker).
 
 History: on 2026-09-10 the launchd agents were stopped for a host-memory bench; they are installed and running again (9001/9002). The measuring tools this plan was waiting for now exist:
 
@@ -96,9 +98,20 @@ bge-m3 itself is **not** outdated for Russian retrieval: ruMTEB retrieval 74.79 
 
 Keep fp32 as default. Re-measure after moving to torch ≥ 2.14 (new MPS fp16/bf16 attention kernel for head size 64) and FlagEmbedding ≥ 1.4.2 (transformers v5 support), both behind `parity_check.py`.
 
-### Demo baseline
+### Demo matrix
 
-`eval/datasets/demo_ru` (36 toy queries): dense recall@1 0.81, equal-weight hybrid RRF 0.56, any +rerank@20 0.75. Toy data, but a warning that fusion weights and the rerank stage must be tuned on the real set, not assumed to help.
+`eval/datasets/demo_ru` (36 toy queries), full table in `eval/results/COMPARISON.md`:
+
+| Retrieval | Reranker | recall@1 | nDCG@10 | rerank p50 (20 docs) |
+|---|---|---|---|---|
+| bge-m3 dense | Qwen3-Reranker-0.6B | 0.861 | 0.940 | ~580 ms |
+| bge-m3 dense | — | 0.806 | 0.906 | — |
+| multilingual-e5-large dense | — | 0.778 | 0.881 | — |
+| bge-m3 dense | bge-reranker-v2-m3 | 0.750 | 0.893 | ~150 ms |
+| Qwen3-Embedding-0.6B dense | — | 0.694 | 0.867 | — |
+| bge-m3 equal-weight hybrid RRF | — | 0.556 | 0.715 | — |
+
+Directionally consistent with the research (the reranker is where newer models gain; the dense model is not the bottleneck), but toy data: the real set decides.
 
 ### Replacement gate
 

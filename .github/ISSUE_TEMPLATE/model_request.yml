@@ -1,0 +1,30 @@
+name: Model profile or result
+description: Suggest a model to support, or share eval results for one
+labels: [model]
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: Hugging Face id and licence.
+      placeholder: "Qwen/Qwen3-Reranker-4B (Apache-2.0)"
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Role
+      options: [embedding, reranker]
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why this model
+      description: Languages, domain, size, published scores.
+  - type: textarea
+    id: results
+    attributes:
+      label: Eval results (optional)
+      description: Output of `uv run python eval/compare.py ...` against the bge control.
+      render: markdown

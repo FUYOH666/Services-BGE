@@ -9,6 +9,14 @@ API (additive; default responses are unchanged and pinned by contract tests):
 - `compact: true` drops the duplicate `dense_embedding`, token-readable `sparse_embedding` and null fields (708 KB → 353 KB, 99 KB with base64, for 16 mixed texts)
 - rerank: `return_documents`, per-request `max_length`, `model` accepted
 
+Model switching (research tool):
+
+- pluggable backends: embeddings `bge-m3` (FlagEmbedding) and `sentence-transformers` (any dense model, query/document prompts via `input_type`, Matryoshka `dimensions`); rerankers `flag-reranker`, `cross-encoder` and `qwen3-reranker` (official yes/no-logit scoring with an `instruction`)
+- `GET /v1/models` on both services: backend, capabilities, dimensions, limits
+- `profiles/*.env` (bge-m3, bge-reranker-v2-m3, Qwen3-Embedding-0.6B, Qwen3-Reranker-0.6B/4B, multilingual-e5-large) and `scripts/sidecar.sh` to run challengers on 9011+ next to production; `run_service.sh --profile`
+- eval: `input_type` for asymmetric models, `--sparse-url` for cross-model hybrids, `eval/compare.py` for one table across runs; demo matrix in `eval/results/COMPARISON.md`
+- the default bge path stays bit-identical to the previous release (`parity_check.py`)
+
 Fixes:
 
 - `EMBEDDING_MAX_LENGTH` is now the default token limit (it was ignored; 512 was hard-coded)
@@ -31,7 +39,8 @@ Tooling and docs:
 - `scripts/test_services.py` takes `--embed-url` / `--rerank-url`
 - GitHub Actions runs the test suite; `psutil` added to dev extras
 - `docs/ROADMAP.md` (first written 2026-09-10) committed and updated with the November 2026 model landscape, quantization rules and the replacement gate
-- README: corrected memory figures (~7.4 GB for both services), API reference, why launchd instead of Docker on macOS
+- documentation rewritten to the repository canon shared with VoiceToText: light/dark SVG banner and pipeline diagram, social preview, badges, `README.ru.md`, `docs/API.md`, `docs/CONFIGURATION.md`, `docs/MODELS.md`, `docs/OPERATIONS.md`, `AGENTS.md`, `llms.txt`, `CONTRIBUTING.md`, `CITATION.cff`, issue and PR templates; CI adds secret/path scans, lockfile and shell checks
+- corrected memory figures (~7.4 GB for both services); the old cover art moved to `docs/assets/cover-art.png`
 
 ## 2026-08-21
 

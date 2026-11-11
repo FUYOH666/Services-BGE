@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/FUYOH666/Services-BGE/security/advisories/new
+    about: Please report security issues privately.
+  - name: Setup for your team
+    url: mailto:private@scanovich.ai
+    about: Retrieval tuned for your documents, evaluation on your data, integration with your agents.

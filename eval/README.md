@@ -20,8 +20,17 @@ uv run python eval/run_eval.py --dataset eval/datasets/demo_ru \
 #   --rerank-k 20          candidates passed to the reranker
 #   --dense-weight 3       weighted RRF (Qdrant 1.17+ semantics), sparse weight is 1
 #   --query-embed-url URL  embed queries with a different endpoint than documents
+#   --sparse-url URL       take sparse vectors from another endpoint (e.g. bge-m3 on 9001)
+#                          so a dense-only challenger is still tested in a hybrid pipeline
 #   --max-length 1024      token limit sent to the embedder
+
+# one table across runs
+uv run python eval/compare.py eval/results/*.json --metric recall@1 --out eval/results/COMPARISON.md
 ```
+
+Queries are sent with `"input_type": "query"` and documents with `"document"`, so
+asymmetric models (Qwen3-Embedding, e5) get their prompts; bge-m3 ignores the field.
+Challengers come from `profiles/` via `./scripts/sidecar.sh up <profile>`.
 
 Each run writes `results/<timestamp>_<dataset>_<name>.json` (full report) and `.md`
 (table). Runs reported:
@@ -54,9 +63,16 @@ code prefix). Timing: index time, query-embedding p50/p95, rerank p50/p95.
 - Real gate: a held-out set of real declarations with verified HS-10 codes from the
   classification project. Put it in `datasets/<name>/`; keep private data out of git.
 
-## Notes from the demo baseline (2026-11-11, M4 Max, fp32)
+## Notes from the demo matrix (2026-11-11, M4 Max, fp32)
 
-On `demo_ru`, plain equal-weight RRF of dense + sparse was **worse** than dense alone
-(recall@1 0.56 vs 0.81), and reranking the top-20 did not beat dense either (0.75).
-`--dense-weight 3` narrows the gap (0.61). This is a toy set, but it shows why fusion
-weights and the rerank stage must be tuned on real data rather than assumed to help.
+Full table: [`results/COMPARISON.md`](results/COMPARISON.md). On `demo_ru`:
+
+- Qwen3-Reranker-0.6B on top of bge-m3 lifted recall@1 from 0.81 to **0.86** (rerank
+  ~580 ms per 20 documents); bge-reranker-v2-m3 *lowered* it to 0.75 (~150 ms).
+- Equal-weight RRF of dense + sparse was worse than dense alone (0.56 vs 0.81);
+  `--dense-weight 3` narrows the gap (0.61).
+- Qwen3-Embedding-0.6B dense (0.69) and multilingual-e5-large (0.78) did not beat
+  bge-m3 dense (0.81).
+
+This is a toy set, so none of this is a verdict. It shows why fusion weights, the
+rerank stage and the model choice must be measured on real data.
