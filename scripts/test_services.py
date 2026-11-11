@@ -1,14 +1,25 @@
-"""Smoke tests for both BGE services."""
+"""Smoke tests for both BGE services.
+
+Usage:
+    uv run python scripts/test_services.py
+    uv run python scripts/test_services.py --embed-url http://127.0.0.1:9101 --rerank-url http://127.0.0.1:9102
+
+URLs can also come from BGE_EMBED_URL / BGE_RERANK_URL. Set SERVICE_API_KEY if the
+services require a key.
+"""
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import sys
 import time
 
 import httpx
 
-EMBED_URL = "http://localhost:9001"
-RERANK_URL = "http://localhost:9002"
+EMBED_URL = os.environ.get("BGE_EMBED_URL", "http://127.0.0.1:9001")
+RERANK_URL = os.environ.get("BGE_RERANK_URL", "http://127.0.0.1:9002")
+HEADERS = {"Authorization": f"Bearer {os.environ['SERVICE_API_KEY']}"} if os.environ.get("SERVICE_API_KEY") else {}
 
 TEXTS = [
     "бесшовные трубы из нержавеющей стали марки AISI 304, диаметр 50мм",
@@ -40,6 +51,7 @@ def check_embedding():
             "return_colbert": False,
             "max_length": 512,
         },
+        headers=HEADERS,
         timeout=60,
     )
     elapsed = time.monotonic() - t0
@@ -91,6 +103,7 @@ def check_reranker():
     r = httpx.post(
         f"{RERANK_URL}/v1/rerank",
         json={"query": query, "documents": documents, "normalize": True},
+        headers=HEADERS,
         timeout=60,
     )
     elapsed = time.monotonic() - t0
@@ -109,6 +122,14 @@ def check_reranker():
 
 
 def main():
+    global EMBED_URL, RERANK_URL
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--embed-url", default=EMBED_URL)
+    parser.add_argument("--rerank-url", default=RERANK_URL)
+    args = parser.parse_args()
+    EMBED_URL, RERANK_URL = args.embed_url.rstrip("/"), args.rerank_url.rstrip("/")
+    print(f"embedding: {EMBED_URL}\nreranker:  {RERANK_URL}")
+
     ok = True
     for name, fn in [
         ("Embedding Health", check_embedding_health),
@@ -119,7 +140,7 @@ def main():
         print(f"\n=== {name} ===")
         try:
             fn()
-            print(f"  PASS")
+            print("  PASS")
         except Exception as e:
             print(f"  FAIL: {e}")
             ok = False

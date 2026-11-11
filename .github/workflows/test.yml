@@ -1,0 +1,27 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      # Tests replace FlagEmbedding/torch with in-memory fakes, so CI installs only
+      # the web stack instead of multi-GB torch wheels from uv.lock.
+      - name: Install test dependencies
+        run: |
+          uv venv --python 3.12
+          uv pip install "fastapi>=0.115" "pydantic>=2" "pydantic-settings>=2" "numpy>=1.26" "httpx>=0.27" "pytest>=8"
+
+      - name: Run pytest
+        run: .venv/bin/python -m pytest -q
