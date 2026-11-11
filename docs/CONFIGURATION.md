@@ -81,9 +81,15 @@ The [agent memory server](AGENT-MEMORY.md) reads the environment and the project
 | `MCP_ALLOWED_PATHS` | `~` | Folders `remember(path=...)` may read, separated by `:` |
 | `MCP_FILE_EXTENSIONS` | `.md,.markdown,.mdx,.txt,.rst` | File types it reads |
 | `MCP_MAX_FILE_BYTES` / `MCP_MAX_FILES` / `MCP_MAX_CHUNKS` | `2000000` / `500` / `5000` | Per file / files per call / passages per call |
-| `MCP_CANON_PATHS` | — | Files or folders (`:`-separated) whose passages are stored as trust tier `canon`; once set, every other write is tier `inbox`. Empty: no tiers. See [AGENT-MEMORY.md](AGENT-MEMORY.md#trust-tiers-curated-canon-vs-unreviewed-notes) |
+| `MCP_CANON_PATHS` | — | Files or folders (`:`-separated) whose passages are stored as trust tier `canon`, in addition to the files of the last canon sync; once either exists, every other write is tier `inbox`. Empty: no tiers. See [AGENT-MEMORY.md](AGENT-MEMORY.md#trust-tiers-curated-canon-vs-unreviewed-notes) |
 | `MCP_PREFER_TIER` | — | Default `search(prefer_tier=...)`, e.g. `canon`. Empty: plain ranking |
 | `MCP_TIER_PENALTY` | `0.5` | With a preferred tier, scores of passages from other tiers are multiplied by this (0–1) |
+| `MCP_CANON_REPO` / `MCP_CANON_DIR` | — | Team canon for `services-bge-mcp sync`: repository (`owner/name`, git URL or local path) and where its read-only clone lives. `--repo` / `--dir` win; both are remembered after the first sync |
+| `MCP_CANON_COLLECTION` | `canon` | Collection sync writes to; searches in it rank tier `canon` first unless `prefer_tier` says otherwise |
+| `MCP_CANON_FILES` | `CANON.md:STATE.md:ORG.md:AGENTS.md:repos.md:decisions` | Files and folders in the clone indexed as tier `canon` (`:`-separated; a folder means its `.md` files) |
+| `MCP_CANON_INBOX` | `inbox` | Files and folders in the clone indexed as tier `inbox` |
+| `MCP_CANON_CHUNK_TOKENS` / `MCP_CANON_CHUNK_OVERLAP_TOKENS` | `150` / `20` | Passage size for the canon (shorter than notes: same recall, faster rerank) |
+| `MCP_STATE_DIR` | `~/.services-bge` | Where sync writes `canon-sync.json` (repository, commit, files, tiers); the server reads it for canon files, the degraded keyword search and `memory_status` |
 
 ## Common
 

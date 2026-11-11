@@ -78,6 +78,22 @@ class MCPSettings(BaseSettings):
     # With a preferred tier, scores of passages from other tiers are multiplied by this.
     tier_penalty: float = Field(default=0.5, ge=0.0, le=1.0)
 
+    # --- Team canon (services-bge-mcp sync) -------------------------------------
+    # A git repository of curated markdown that every agent reads. `sync` clones or
+    # fast-forwards it (read-only), indexes it and writes a manifest to state_dir;
+    # repo and dir are remembered there after the first run.
+    canon_repo: str = ""  # owner/name, git URL or local path
+    canon_dir: str = ""  # where the clone lives, e.g. ~/development/memory
+    canon_collection: str = "canon"
+    # Relative to canon_dir, ":"-separated; a folder means every .md file in it.
+    canon_files: str = "CANON.md:STATE.md:ORG.md:AGENTS.md:repos.md:decisions"
+    canon_inbox: str = "inbox"
+    # Short passages: same recall as 500 tokens on the memory bench, 3x faster rerank.
+    canon_chunk_tokens: int = 150
+    canon_chunk_overlap_tokens: int = 20
+    # Where sync records what it indexed (canon-sync.json).
+    state_dir: str = "~/.services-bge"
+
     model_config = SettingsConfigDict(
         env_prefix="MCP_",
         # The project's .env, wherever the agent starts the process from.

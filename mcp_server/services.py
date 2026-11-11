@@ -10,6 +10,10 @@ class ServiceError(Exception):
     """A failure with a message an agent (and its user) can act on."""
 
 
+class ServiceUnavailable(ServiceError):
+    """The service is down, unreachable, timing out or still loading: worth a fallback, not a bug."""
+
+
 @dataclass
 class Embedding:
     dense: list[float]
@@ -69,9 +73,9 @@ class _ServiceClient:
         try:
             response = await self._http().post(path, json=body)
         except httpx.TimeoutException as exc:
-            raise ServiceError(f"The {self.name} at {self.base_url} timed out ({exc.__class__.__name__}).") from exc
+            raise ServiceUnavailable(f"The {self.name} at {self.base_url} timed out ({exc.__class__.__name__}).") from exc
         except httpx.TransportError as exc:
-            raise ServiceError(
+            raise ServiceUnavailable(
                 f"The {self.name} at {self.base_url} is not reachable ({exc.__class__.__name__}). {self.hint}"
             ) from exc
         if response.status_code == 401:
@@ -80,10 +84,24 @@ class _ServiceClient:
                 "Set SERVICE_API_KEY (or MCP_EMBEDDING_API_KEY / MCP_RERANKER_API_KEY) for the MCP server."
             )
         if response.status_code == 503:
-            raise ServiceError(f"The {self.name} at {self.base_url} is still loading its model; retry in a few seconds.")
+            raise ServiceUnavailable(f"The {self.name} at {self.base_url} is still loading its model; retry in a few seconds.")
         if response.status_code >= 400:
             raise ServiceError(f"The {self.name} returned {response.status_code}: {_detail(response)}")
         return response.json()
+
+    async def ready(self, timeout: float = 3.0) -> tuple[bool, str]:
+        """(ready, model or reason) from GET /readyz, without raising."""
+        try:
+            response = await self._http().get("/readyz", timeout=timeout)
+        except httpx.HTTPError as exc:
+            return False, f"not reachable at {self.base_url} ({exc.__class__.__name__})"
+        try:
+            body = response.json()
+        except ValueError:
+            body = {}
+        if response.status_code == 200 and body.get("ready", True):
+            return True, str(body.get("model") or "ready")
+        return False, f"answers {response.status_code} at {self.base_url} (still loading?)"
 
     async def aclose(self) -> None:
         if self._client is not None:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import logging
 import secrets
 import sys
@@ -16,6 +17,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from . import __version__
+from .canon import describe_sync, sync
 from .config import MCPSettings, is_loopback
 from .memory import (
     CollectionsResult,
@@ -25,6 +27,7 @@ from .memory import (
     RerankResult,
     SearchResult,
     SourcesResult,
+    StatusResult,
     VectorsResult,
 )
 from .services import ServiceError
@@ -45,6 +48,15 @@ share memory; `list_collections` and `list_sources` show what exists.
 - `forget` deletes permanently; ask the user first.
 - A passage may carry a `tier`: `canon` is a curated file, `inbox` an unreviewed write \
 by an agent. When they disagree, trust `canon` and say that the inbox passage conflicts.
+- If a search result says `degraded: true`, the memory services are down and the results \
+come from a keyword search of the curated canon files; read the file named in `note` if \
+they are not enough. `memory_status` shows what is indexed and the current mode.
+"""
+
+CANON_HINT = """\
+- The team's curated canon (synced from {repo} at commit {commit}) is in collection \
+"{collection}". For questions about the team, its rules, plans and decisions, search it \
+with collection="{collection}" first.
 """
 
 READ_ONLY = ToolAnnotations(read_only_hint=True, open_world_hint=False)
@@ -60,11 +72,18 @@ def build_server(settings: MCPSettings | None = None, memory: Memory | None = No
     memory = memory or Memory(settings)
     default = settings.default_collection
 
+    instructions = INSTRUCTIONS.format(default=default)
+    manifest = memory.manifest()
+    if manifest is not None:
+        instructions += CANON_HINT.format(
+            repo=manifest.repo or manifest.dir, commit=(manifest.commit or "?")[:7], collection=manifest.collection,
+        )
+
     server = MCPServer(
         "services-bge",
         title="Services-BGE memory",
         description="Local long-term memory and hybrid search (bge-m3 + reranker + Qdrant)",
-        instructions=INSTRUCTIONS.format(default=default),
+        instructions=instructions,
         website_url="https://github.com/FUYOH666/Services-BGE",
         version=__version__,
         log_level=settings.log_level.upper(),
@@ -136,11 +155,22 @@ def build_server(settings: MCPSettings | None = None, memory: Memory | None = No
         Hybrid search (bge-m3 dense meaning + sparse keyword match, fused in Qdrant),
         then reranked. Results come best first with `source` to cite, `score`, and
         `tier` ('canon' curated / 'inbox' unreviewed) when the server uses trust tiers.
+        In the team canon collection, canon passages rank first by default. If the
+        services are down, results come from a keyword search of the canon files and
+        `degraded` is true.
         """
         return await run(memory.search(
             collection, query, top_k=top_k, rerank=rerank, tags=tags, source=source, min_score=min_score,
             tiers=tiers, prefer_tier=prefer_tier,
         ))
+
+    @server.tool(title="Memory status", annotations=READ_ONLY)
+    async def memory_status() -> StatusResult:
+        """What is in memory and whether it works: mode (full / no-rerank / degraded / down),
+        the synced team canon (repository, commit, files by tier), and every collection
+        with its sources, tiers and passage counts. `summary` says it in plain words.
+        """
+        return await run(memory.status())
 
     @server.tool(title="List memory collections", annotations=READ_ONLY)
     async def list_collections() -> CollectionsResult:
@@ -240,6 +270,14 @@ def main(argv: list[str] | None = None) -> None:
         prog="services-bge-mcp",
         description="MCP server for Services-BGE: shared long-term memory and search for AI agents.",
     )
+    parser.add_argument(
+        "command", nargs="?", default="serve", choices=["serve", "sync", "status"],
+        help="serve (default): run the MCP server; sync: clone or pull the team canon read-only and index it; "
+             "status: what is indexed and whether search works",
+    )
+    parser.add_argument("--repo", help="sync: canon repository (owner/name, git URL or local path); remembered after the first run")
+    parser.add_argument("--dir", dest="directory", help="sync: where the read-only clone lives, e.g. ~/development/memory")
+    parser.add_argument("--json", action="store_true", help="status: print the full result as JSON")
     parser.add_argument("--transport", choices=["stdio", "http"], help="stdio (default, for agents that start the server) or http")
     parser.add_argument("--host", help="HTTP bind address (default 127.0.0.1)")
     parser.add_argument("--port", type=int, help="HTTP port (default 9003)")
@@ -253,6 +291,9 @@ def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=settings.log_level.upper(), stream=sys.stderr, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
+    if args.command in ("sync", "status"):
+        sys.exit(asyncio.run(_command(args, settings)))
+
     server = build_server(settings)
     if settings.transport == "stdio":
         server.run("stdio")
@@ -265,6 +306,23 @@ def main(argv: list[str] | None = None) -> None:
 
     logger.info("Serving MCP over streamable HTTP on http://%s:%d%s", settings.host, settings.port, settings.path)
     uvicorn.run(http_app(server, settings), host=settings.host, port=settings.port, log_level=settings.log_level.lower())
+
+
+async def _command(args: argparse.Namespace, settings: MCPSettings) -> int:
+    memory = Memory(settings)
+    try:
+        if args.command == "sync":
+            manifest = await sync(memory, repo=args.repo, directory=args.directory)
+            print(describe_sync(manifest, settings))
+            return 0
+        status = await memory.status()
+        print(status.model_dump_json(indent=2) if args.json else status.summary)
+        return 0 if status.mode != "down" else 1
+    except ServiceError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        await memory.aclose()
 
 
 if __name__ == "__main__":

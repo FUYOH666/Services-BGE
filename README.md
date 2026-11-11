@@ -133,7 +133,7 @@ It is a toy set — a pipeline check, not a verdict — but it already shows why
 | `POST :9002/v1/rerank` | Scores and orders documents for a query (`top_n`, `return_documents`, `instruction`) |
 | `GET /v1/models` | Served model, backend, capabilities, dimensions, limits |
 | `GET /readyz`, `/livez` | Readiness (model loaded and warmed up) and liveness |
-| MCP `:9003/mcp` or stdio | Agent tools: `remember`, `search`, `list_collections`, `list_sources`, `forget`, `rerank`, `embed` ([docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)) |
+| MCP `:9003/mcp` or stdio | Agent tools: `remember`, `search`, `memory_status`, `list_collections`, `list_sources`, `forget`, `rerank`, `embed` ([docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)) |
 
 Field reference, error codes, a complete Qdrant hybrid-search example and response samples: **[docs/API.md](docs/API.md)**. Every setting: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
@@ -146,7 +146,7 @@ uv run python scripts/mcp_smoke.py                                    # remember
 claude mcp add --scope user services-bge -- "$(pwd)/scripts/mcp.sh"   # Claude Code; Cursor, OpenClaw, Hermes: see the guide
 ```
 
-Per-agent setup, the tools, collection rules and safety: **[docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)**. Connecting is additive (one `services-bge` entry per agent); to disconnect or roll back: [docs/AGENT-ROLLBACK.md](docs/AGENT-ROLLBACK.md).
+Per-agent setup, the tools, collection rules and safety: **[docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)**. `uv run services-bge-mcp sync` indexes a team canon from git (read-only) and `uv run services-bge-mcp status` says what memory holds; when the services are down, search falls back to a keyword search of the canon files. Connecting is additive (one `services-bge` entry per agent); to disconnect or roll back: [docs/AGENT-ROLLBACK.md](docs/AGENT-ROLLBACK.md).
 
 Opt-in **trust tiers** label curated files `canon` and every agent write `inbox`, so a wrong note from one bot does not outrank the curated fact for the next agent. How well memory finds facts in Russian, English and mixed questions, against grep, and how often a planted false note wins with and without tiers: **[docs/MEMORY-BENCH.md](docs/MEMORY-BENCH.md)**.
 

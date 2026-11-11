@@ -128,7 +128,7 @@ uv run python eval/compare.py eval/results/*.json --metric recall@1
 | `POST :9002/v1/rerank` | Оценка и сортировка документов (`top_n`, `return_documents`, `instruction`) |
 | `GET /v1/models` | Модель, бэкенд, возможности, размерность, лимиты |
 | `GET /readyz`, `/livez` | Готовность (модель загружена и прогрета) и жизнь процесса |
-| MCP `:9003/mcp` или stdio | Инструменты агентов: `remember`, `search`, `list_collections`, `list_sources`, `forget`, `rerank`, `embed` ([docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)) |
+| MCP `:9003/mcp` или stdio | Инструменты агентов: `remember`, `search`, `memory_status`, `list_collections`, `list_sources`, `forget`, `rerank`, `embed` ([docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)) |
 
 Все поля, коды ошибок, пример гибридного поиска в Qdrant: **[docs/API.md](docs/API.md)**. Все настройки: [docs/CONFIGURATION.md](docs/CONFIGURATION.md). Эксплуатация: [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
@@ -141,7 +141,7 @@ uv run python scripts/mcp_smoke.py                                    # remember
 claude mcp add --scope user services-bge -- "$(pwd)/scripts/mcp.sh"   # Claude Code; Cursor, OpenClaw, Hermes — в руководстве
 ```
 
-Подключение каждого агента, инструменты, правила коллекций и безопасность: **[docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)** (на английском). Подключение только добавляет одну запись `services-bge` в настройки агента; как отключить и откатить: [docs/AGENT-ROLLBACK.md](docs/AGENT-ROLLBACK.md).
+Подключение каждого агента, инструменты, правила коллекций и безопасность: **[docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)** (на английском). `uv run services-bge-mcp sync` индексирует общий канон команды из git (только чтение), `uv run services-bge-mcp status` показывает, что лежит в памяти; если сервисы недоступны, поиск переходит на поиск по словам в файлах канона. Подключение только добавляет одну запись `services-bge` в настройки агента; как отключить и откатить: [docs/AGENT-ROLLBACK.md](docs/AGENT-ROLLBACK.md).
 
 Необязательные **уровни доверия** помечают проверенные файлы как `canon`, а любую запись агента как `inbox`, чтобы ошибочная заметка одного бота не перебивала проверенный факт для следующего агента. Насколько хорошо память находит факты по вопросам на русском, английском и вперемешку, по сравнению с grep, и как часто подброшенная ложная заметка выходит первой с уровнями и без: **[docs/MEMORY-BENCH.md](docs/MEMORY-BENCH.md)** (на английском).
 
