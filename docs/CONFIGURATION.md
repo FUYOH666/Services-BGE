@@ -55,6 +55,33 @@ After editing `.env`, run `./scripts/service.sh restart`.
 | `RERANKER_TRUST_REMOTE_CODE` | `false` | |
 | `RERANKER_WORKERS`, `_LOG_LEVEL`, `_ACCESS_LOG`, `_SLOW_REQUEST_MS`, `_WARMUP`, `_MPS_CACHE_THRESHOLD_MB`, `_API_KEY` | | Same as for the embedding service |
 
+## MCP server (`MCP_*`)
+
+The [agent memory server](AGENT-MEMORY.md) reads the environment and the project's `.env` itself (variables already set win), wherever the agent starts it from. After editing `.env`, restart the agent (stdio) or `./scripts/run_service.sh mcp` (HTTP).
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `MCP_TRANSPORT` | `stdio` | `stdio` or `http`; `--transport` on the command line wins |
+| `MCP_HOST` / `MCP_PORT` / `MCP_PATH` | `127.0.0.1` / `9003` / `/mcp` | HTTP address. A non-loopback host is refused without `MCP_API_KEY` |
+| `MCP_API_KEY` | — | Required from HTTP clients when set (Bearer or `X-API-Key`); `/healthz` stays open |
+| `MCP_LOG_LEVEL` | `INFO` | Logs go to stderr |
+| `MCP_EMBEDDING_URL` | `http://127.0.0.1:9001` | Embedding service (any profile with the same API, e.g. a sidecar) |
+| `MCP_RERANKER_URL` | `http://127.0.0.1:9002` | Rerank service |
+| `MCP_EMBEDDING_API_KEY` | `EMBEDDING_API_KEY`, then `SERVICE_API_KEY` | Key sent to the embedding service |
+| `MCP_RERANKER_API_KEY` | `RERANKER_API_KEY`, then `SERVICE_API_KEY` | Key sent to the rerank service |
+| `MCP_QDRANT_URL` | `http://127.0.0.1:6333` | Qdrant REST endpoint |
+| `MCP_QDRANT_API_KEY` | — | Qdrant API key, if your Qdrant has one |
+| `MCP_REQUEST_TIMEOUT` | `120` | Seconds per call to the services or Qdrant |
+| `MCP_COLLECTION_PREFIX` | `mcp_` | Qdrant name prefix of memory collections; others are invisible to agents |
+| `MCP_DEFAULT_COLLECTION` | `memory` | Collection used when a tool call names none |
+| `MCP_CHUNK_TOKENS` / `MCP_CHUNK_OVERLAP_TOKENS` | `500` / `80` | Passage size and overlap (estimated tokens) |
+| `MCP_MAX_LENGTH` | `1024` | `max_length` sent to both services; keep it above `MCP_CHUNK_TOKENS` |
+| `MCP_EMBED_BATCH_SIZE` | `32` | Passages per `/v1/embeddings` call |
+| `MCP_PREFETCH_LIMIT` / `MCP_RERANK_CANDIDATES` | `50` / `20` | Dense and sparse candidates before fusion; fused candidates reranked |
+| `MCP_ALLOWED_PATHS` | `~` | Folders `remember(path=...)` may read, separated by `:` |
+| `MCP_FILE_EXTENSIONS` | `.md,.markdown,.mdx,.txt,.rst` | File types it reads |
+| `MCP_MAX_FILE_BYTES` / `MCP_MAX_FILES` / `MCP_MAX_CHUNKS` | `2000000` / `500` / `5000` | Per file / files per call / passages per call |
+
 ## Common
 
 | Variable | Default | Meaning |

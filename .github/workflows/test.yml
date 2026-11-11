@@ -45,11 +45,13 @@ jobs:
         run: for f in scripts/*.sh; do bash -n "$f"; done
 
       # Tests replace FlagEmbedding / sentence-transformers / torch with in-memory
-      # fakes, so CI installs only the web stack instead of multi-GB torch wheels.
+      # fakes (and Qdrant with qdrant-client's in-memory mode), so CI installs only
+      # the web and MCP stack instead of multi-GB torch wheels.
       - name: Install test dependencies
         run: |
           uv venv --python 3.12
-          uv pip install "fastapi>=0.115" "pydantic>=2" "pydantic-settings>=2" "numpy>=1.26" "httpx>=0.27" "pytest>=8"
+          uv pip install "fastapi>=0.115" "pydantic>=2" "pydantic-settings>=2" "numpy>=1.26" "httpx>=0.27" "pytest>=8" \
+            "mcp>=2.3,<3" "qdrant-client>=1.16"
 
       - name: Run pytest
         run: .venv/bin/python -m pytest -q

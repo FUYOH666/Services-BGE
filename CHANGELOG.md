@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+Agent memory (new, opt-in; the embedding and rerank APIs are unchanged):
+
+- `mcp_server/`, console script `services-bge-mcp`: an MCP server (official `mcp` SDK 2.x) that gives Claude Code, Cursor, OpenClaw, Hermes and other agents shared long-term memory on top of the two services and Qdrant, over stdio (`scripts/mcp.sh`) or streamable HTTP on `127.0.0.1:9003` (`./scripts/run_service.sh mcp`)
+- tools: `remember` (notes, or `.md`/`.txt` files and folders, chunked into ~500-token passages with heading paths and overlap), `search` (bge-m3 dense + sparse with RRF fusion in Qdrant `query_points`, then bge-reranker-v2-m3; falls back to fusion order when the reranker is down), `list_collections`, `list_sources`, `forget`, `rerank`, `embed`
+- idempotent writes: stable point ids from source + passage number; unchanged passages are not re-embedded; a re-read file replaces its old passages
+- safety: memory collections are prefixed `mcp_` so other collections stay invisible; `forget` needs an explicit `source` or `everything=true`; file reading limited to `MCP_ALLOWED_PATHS` (default `~`), text extensions and size limits; the collection records its embedding model and refuses vectors from another one; HTTP binds to loopback with DNS-rebinding protection and refuses other hosts without `MCP_API_KEY`; `SERVICE_API_KEY` is sent to the services when set
+- `MCP_*` settings in `docs/CONFIGURATION.md`; setup for each agent in `docs/AGENT-MEMORY.md`; `scripts/mcp_smoke.py` checks the full loop on a scratch collection and deletes it
+- dependencies: `mcp>=2.3,<3`, `qdrant-client>=1.16`; CI installs both and runs the MCP tests against fake services and in-memory Qdrant
+
 ## 0.2.0 — 2026-11-11
 
 API (additive; default responses are unchanged and pinned by contract tests):

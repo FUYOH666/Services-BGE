@@ -10,7 +10,7 @@ Two services, one model each. Defaults: embedding on `http://127.0.0.1:9001`, re
 - [Errors](#errors)
 - [Hybrid search with Qdrant](#hybrid-search-with-qdrant)
 
-Interactive OpenAPI docs are served at `/docs` on each port.
+Interactive OpenAPI docs are served at `/docs` on each port. AI agents can also use both services through the MCP memory server: [AGENT-MEMORY.md](AGENT-MEMORY.md).
 
 ## Authentication
 

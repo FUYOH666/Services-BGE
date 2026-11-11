@@ -23,7 +23,7 @@
   <a href="README.md">English</a>
 </p>
 
-**Свой API эмбеддингов и реранкинга на Mac — и доказательство, какая модель лучше именно на ваших данных.** Services-BGE запускает [BAAI/bge-m3](https://huggingface.co/BAAI/bge-m3) (dense + sparse + ColBERT за один проход) и [bge-reranker-v2-m3](https://huggingface.co/BAAI/bge-reranker-v2-m3) как два локальных сервиса для гибридного поиска в [Qdrant](https://qdrant.tech). Любая другая модель — Qwen3-Embedding, Qwen3-Reranker, multilingual-e5 или любой SentenceTransformer — поднимается рядом из файла-профиля, а встроенный eval-харнесс сравнивает их на ваших запросах.
+**Свой API эмбеддингов и реранкинга на Mac — и доказательство, какая модель лучше именно на ваших данных.** Services-BGE запускает [BAAI/bge-m3](https://huggingface.co/BAAI/bge-m3) (dense + sparse + ColBERT за один проход) и [bge-reranker-v2-m3](https://huggingface.co/BAAI/bge-reranker-v2-m3) как два локальных сервиса для гибридного поиска в [Qdrant](https://qdrant.tech). Любая другая модель — Qwen3-Embedding, Qwen3-Reranker, multilingual-e5 или любой SentenceTransformer — поднимается рядом из файла-профиля, а встроенный eval-харнесс сравнивает их на ваших запросах. [MCP-сервер](docs/AGENT-MEMORY.md) превращает тот же стек в общую долговременную память для AI-агентов.
 
 <p align="center">
   <picture>
@@ -72,6 +72,7 @@ curl http://127.0.0.1:9002/v1/rerank -H 'Content-Type: application/json' \
 - **Гибридные векторы одним вызовом.** Dense 1024, sparse-веса сразу в формате Qdrant (`sparse_qdrant`), по желанию ColBERT.
 - **Совместимость с OpenAI.** `/v1/embeddings` работает с официальным SDK `openai` (строка или список, `encoding_format=base64`, `dimensions`, реальный `usage`); `/v1/rerank` в формате Cohere/Jina.
 - **Подключаемые модели.** Бэкенды для bge-m3, любого SentenceTransformer (промпты запроса/документа, Matryoshka), кросс-энкодеров FlagEmbedding и sentence-transformers, а также Qwen3-Reranker с официальной yes/no-оценкой.
+- **Память для AI-агентов.** MCP-сервер (stdio или HTTP на :9003): Claude Code, Cursor, OpenClaw, Hermes и другие агенты сохраняют заметки и папки markdown через `remember` и находят их через `search` — гибридный поиск с реранком в вашем локальном Qdrant.
 - **Сайдкары для экспериментов.** `./scripts/sidecar.sh up <профиль>` поднимает претендента на своём порту, не трогая прод.
 - **Встроенный eval.** Dense, sparse, гибрид RRF и реранк; recall, nDCG, MRR, точность кода ТН ВЭД по префиксу, латентность; одна сводная таблица.
 - **Безопасные умолчания.** Только `127.0.0.1`, опциональный API-ключ, лимиты запросов, прогрев до готовности, офлайн-старт из локального кэша.
@@ -127,12 +128,22 @@ uv run python eval/compare.py eval/results/*.json --metric recall@1
 | `POST :9002/v1/rerank` | Оценка и сортировка документов (`top_n`, `return_documents`, `instruction`) |
 | `GET /v1/models` | Модель, бэкенд, возможности, размерность, лимиты |
 | `GET /readyz`, `/livez` | Готовность (модель загружена и прогрета) и жизнь процесса |
+| MCP `:9003/mcp` или stdio | Инструменты агентов: `remember`, `search`, `list_collections`, `list_sources`, `forget`, `rerank`, `embed` ([docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)) |
 
 Все поля, коды ошибок, пример гибридного поиска в Qdrant: **[docs/API.md](docs/API.md)**. Все настройки: [docs/CONFIGURATION.md](docs/CONFIGURATION.md). Эксплуатация: [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 ## Для AI-агентов
 
-Сервисы слушают `127.0.0.1` и говорят на протоколах, которые агенты уже знают. Официальный OpenAI SDK работает без изменений:
+**Общая память через MCP.** `services-bge-mcp` даёт Claude Code, Cursor, OpenClaw, Hermes и любому MCP-клиенту долговременную память поверх этих сервисов: `remember` сохраняет заметки, решения или папку markdown, `search` ищет по ним (bge-m3 dense + sparse, слияние в Qdrant и реранк), `forget` удаляет по источнику. Одну коллекцию могут делить все ваши агенты; данные не покидают Mac.
+
+```bash
+uv run python scripts/mcp_smoke.py                                    # remember → search → forget на временной коллекции
+claude mcp add --scope user services-bge -- "$(pwd)/scripts/mcp.sh"   # Claude Code; Cursor, OpenClaw, Hermes — в руководстве
+```
+
+Подключение каждого агента, инструменты, правила коллекций и безопасность: **[docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)** (на английском).
+
+**Прямые API.** Сервисы слушают `127.0.0.1` и говорят на протоколах, которые агенты уже знают. Официальный OpenAI SDK работает без изменений:
 
 ```python
 from openai import OpenAI

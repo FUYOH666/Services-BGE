@@ -5,7 +5,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_DIR"
 
 usage() {
-    echo "Usage: $(basename "$0") <embedding|reranker>"
+    echo "Usage: $(basename "$0") <embedding|reranker|mcp>"
     echo "       $(basename "$0") --profile <name>     (profiles/<name>.env, see profiles/README.md)"
     exit 1
 }
@@ -17,7 +17,7 @@ case "${1:-}" in
         profile="${2:-}"
         [ -n "$profile" ] || usage
         ;;
-    embedding|reranker)
+    embedding|reranker|mcp)
         service="$1"
         ;;
     *)
@@ -56,6 +56,13 @@ eval "$caller_env"
 
 export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
 export PYTHONUNBUFFERED="${PYTHONUNBUFFERED:-1}"
+
+# The MCP memory server loads no model: serve it over streamable HTTP and stop here.
+# Agents that start the server themselves use `uv run services-bge-mcp` (stdio) instead.
+if [ "$service" = "mcp" ]; then
+    echo "Starting MCP memory server on ${MCP_HOST:-127.0.0.1}:${MCP_PORT:-9003}${MCP_PATH:-/mcp}"
+    exec uv run services-bge-mcp --transport http
+fi
 
 case "$service" in
     embedding)
