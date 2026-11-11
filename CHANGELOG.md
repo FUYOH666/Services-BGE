@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- canon sync indexes only open inbox proposals (frontmatter `status: proposed`, `MCP_CANON_INBOX_STATUSES`); curated, accepted and rejected files and files without a status are skipped and their passages removed; `memory_status`, `status` and `sync` say in plain words what was skipped and why
+
 Agent memory that works in any state, with a visible team canon (opt-in; default API unchanged):
 
 - `services-bge-mcp sync`: clones the team canon repository or fast-forwards its clone (read-only: never commits or pushes), indexes the read-first files and `decisions/` as tier `canon` and `inbox/` as tier `inbox` into collection `canon`, in 150-token passages; idempotent (only changed passages are embedded, passages of deleted files are removed); writes `~/.services-bge/canon-sync.json` with repository, commit, time and files

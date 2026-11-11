@@ -88,6 +88,7 @@ The [agent memory server](AGENT-MEMORY.md) reads the environment and the project
 | `MCP_CANON_COLLECTION` | `canon` | Collection sync writes to; searches in it rank tier `canon` first unless `prefer_tier` says otherwise |
 | `MCP_CANON_FILES` | `CANON.md:STATE.md:ORG.md:AGENTS.md:repos.md:decisions` | Files and folders in the clone indexed as tier `canon` (`:`-separated; a folder means its `.md` files) |
 | `MCP_CANON_INBOX` | `inbox` | Files and folders in the clone indexed as tier `inbox` |
+| `MCP_CANON_INBOX_STATUSES` | `proposed` | Inbox files are indexed only when their frontmatter `status:` is one of these (comma-separated; `*` = all). Curated, accepted and rejected proposals already live in the canon |
 | `MCP_CANON_CHUNK_TOKENS` / `MCP_CANON_CHUNK_OVERLAP_TOKENS` | `150` / `20` | Passage size for the canon (shorter than notes: same recall, faster rerank) |
 | `MCP_STATE_DIR` | `~/.services-bge` | Where sync writes `canon-sync.json` (repository, commit, files, tiers); the server reads it for canon files, the degraded keyword search and `memory_status` |
 
