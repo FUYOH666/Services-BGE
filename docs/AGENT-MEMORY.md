@@ -180,10 +180,10 @@ Memory holds two kinds of text, and `memory_status` (or `uv run services-bge-mcp
 | What | Where | Tier | Who writes it |
 |---|---|---|---|
 | **The team canon**: the files every agent is told to read first (`CANON.md`, `STATE.md`, `ORG.md`, `AGENTS.md`, `repos.md`) and the decision records (`decisions/`) | collection `canon` | `canon` | only `services-bge-mcp sync`, from a read-only git clone; the commit is recorded |
-| The canon repository's `inbox/`: agents' unreviewed proposals and reports | collection `canon` | `inbox` | the same sync |
+| Open proposals in the canon repository's `inbox/` (frontmatter `status: proposed`) | collection `canon` | `inbox` | the same sync |
 | Agents' own notes and the files they choose to save (`remember`) | the collection they name, `memory` by default | `inbox` once a canon is synced | any connected agent |
 
-**Not indexed**, by design: personal agent memories (Hermes `SOUL` / `MEMORY.md`, OpenClaw `MEMORY.md`, Claude Code project memories), secrets, `.env` files, code repositories, and anything else on the Mac. Sync reads exactly the files listed above from the clone and nothing else. An agent can still save a note or a file with `remember`; that write is visible in `memory_status` under its source, as tier `inbox`.
+**Not indexed**, by design: inbox files the curator has closed (`status: curated`, `accepted` or `rejected`, since their content already lives in the canon or `decisions/`) and inbox files without a status, such as its README; personal agent memories (Hermes `SOUL` / `MEMORY.md`, OpenClaw `MEMORY.md`, Claude Code project memories), secrets, `.env` files, code repositories, and anything else on the Mac. Sync reads exactly the files listed above from the clone and nothing else. An agent can still save a note or a file with `remember`; that write is visible in `memory_status` under its source, as tier `inbox`.
 
 **Why this shape.**
 
@@ -204,7 +204,8 @@ uv run services-bge-mcp status
 ```
 
 - **Read-only.** It runs `gh repo clone` or `git clone`, then `git pull --ff-only`, and never commits or pushes. A clone with local changes is not pulled; it is indexed as it is, with a warning.
-- **Idempotent.** Only changed passages are embedded again. Passages of files that were deleted or renamed are removed. Agents' notes in the collection are left alone.
+- **Idempotent.** Only changed passages are embedded again. Passages of files that were deleted, renamed or closed by the curator are removed. Agents' notes in the collection are left alone.
+- **Only open proposals from the inbox.** An inbox file is indexed while its frontmatter says `status: proposed` (`MCP_CANON_INBOX_STATUSES`). `status` and the sync output say which files were skipped and why, e.g. "6 curated inbox files skipped: already in canon or decisions/".
 - **Short passages.** Canon files are cut into passages of about 150 tokens (`MCP_CANON_CHUNK_TOKENS`). On the bench this gave the same recall as 500 tokens, with a third of the rerank time (0.6 s instead of 1.9 s).
 - **Recorded.** `~/.services-bge/canon-sync.json` holds the repository, commit, time and every file with its tier and passage count. The server reads this record: it knows which files are canon, ranks them first in the `canon` collection, and tells agents in its instructions where the canon is.
 - **When to run it.** Run it after the canon changes, by hand or from your own scheduler. Running it twice in a row changes nothing.

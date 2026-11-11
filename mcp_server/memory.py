@@ -35,7 +35,7 @@ from qdrant_client import AsyncQdrantClient, models
 from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
 
 from . import keyword
-from .canon import Manifest, load_manifest, manifest_path, markdown_files
+from .canon import Manifest, load_manifest, manifest_path, markdown_files, skipped_summary
 from .chunking import Chunk, chunk_text
 from .config import MCPSettings
 from .services import EmbeddingClient, RerankClient, ServiceError, ServiceUnavailable
@@ -972,12 +972,16 @@ def _status_summary(
         inbox_n = sum(1 for f in manifest.files if f.tier == INBOX)
         lines.append(
             f"Team canon: collection '{manifest.collection}' holds {canon_n} curated files "
-            f"({manifest.passages(CANON)} passages, tier canon) and {inbox_n} inbox files "
-            f"({manifest.passages(INBOX)} passages, tier inbox, unreviewed agent reports) from "
-            f"{manifest.repo or manifest.dir} at commit {commit}"
+            f"({manifest.passages(CANON)} passages, tier canon) and "
+            + (f"{inbox_n} open inbox proposals ({manifest.passages(INBOX)} passages, tier inbox)" if inbox_n
+               else "no open inbox proposals")
+            + f" from {manifest.repo or manifest.dir} at commit {commit}"
             + (f" of {manifest.commit_date[:10]}" if manifest.commit_date else "")
             + f", synced {manifest.synced_at.replace('T', ' ')[:16]} UTC. Nothing else is indexed by sync."
         )
+        skipped = skipped_summary(manifest.skipped)
+        if skipped:
+            lines.append(f"Not indexed: {skipped}")
     else:
         lines.append("No team canon has been synced yet (services-bge-mcp sync --repo <owner/name> --dir <folder>).")
     for c in collections:

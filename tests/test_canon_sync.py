@@ -15,7 +15,7 @@ import pytest
 from mcp import Client
 from qdrant_client import AsyncQdrantClient
 
-from mcp_server.canon import load_manifest, select_files, sync
+from mcp_server.canon import frontmatter_status, load_manifest, select_files, skipped_summary, sync
 from mcp_server.memory import Memory
 from mcp_server.server import build_server
 from mcp_server.services import EmbeddingClient, RerankClient
@@ -24,7 +24,8 @@ from test_mcp_server import FakeServices, call, make_memory
 CANON = "# Canon\n\n## Pricing\n\nA pilot costs EUR 900 to 2,400 for four weeks.\n\n## Branches\n\nThe production checker runs on branch stable.\n"
 STATE = "# State\n\nGoal: two paid pilots by December.\n"
 DECISION = "# 0001 Keep local OCR\n\nWe keep the local OCR engine because client documents must stay on site.\n"
-INBOX = "---\nsource: scout\n---\n\n# Scout notes\n\nCold emails get a 2 % reply rate.\n"
+INBOX = "---\nsource: scout\ndate: 2026-11-01\nstatus: proposed\n---\n\n# Scout notes\n\nCold emails get a 2 % reply rate.\n"
+CURATED = "---\nsource: coder\nstatus: curated\n---\n\n# Coder inventory\n\nAlready folded into decisions.\n"
 
 
 def _git(cwd: Path, *args: str) -> str:
@@ -44,6 +45,8 @@ def _canon_repo(root: Path) -> Path:
     (repo / "STATE.md").write_text(STATE, encoding="utf-8")
     (repo / "decisions" / "0001-ocr.md").write_text(DECISION, encoding="utf-8")
     (repo / "inbox" / "2026-11-01-scout.md").write_text(INBOX, encoding="utf-8")
+    (repo / "inbox" / "2026-10-30-coder-inventory.md").write_text(CURATED, encoding="utf-8")
+    (repo / "inbox" / "README.md").write_text("# Inbox\n\nHow to propose a fact.\n", encoding="utf-8")
     (repo / "private" / "agent-memory.md").write_text("A personal agent memory: never indexed.", encoding="utf-8")
     (repo / "tool.py").write_text("print('code is not indexed')", encoding="utf-8")
     _git(repo, "init", "-q", "-b", "main")
@@ -69,7 +72,9 @@ def test_select_files_takes_only_listed_markdown(tmp_path):
     repo = _canon_repo(tmp_path)
     canon, inbox = select_files(repo, ["CANON.md", "STATE.md", "ORG.md", "decisions"], ["inbox", "CANON.md"])
     assert [p.name for p in canon] == ["CANON.md", "STATE.md", "0001-ocr.md"]  # ORG.md is missing: skipped
-    assert [p.name for p in inbox] == ["2026-11-01-scout.md"]  # CANON.md stays canon
+    assert [p.name for p in inbox] == ["2026-10-30-coder-inventory.md", "2026-11-01-scout.md", "README.md"]
+    assert "CANON.md" not in [p.name for p in inbox]  # listed in both: stays canon
+    assert [frontmatter_status(p) for p in inbox] == ["curated", "proposed", None]
 
 
 def test_sync_indexes_canon_and_inbox_and_is_idempotent(tmp_path):
@@ -86,6 +91,14 @@ def test_sync_indexes_canon_and_inbox_and_is_idempotent(tmp_path):
             "CANON.md": "canon", "STATE.md": "canon", "decisions/0001-ocr.md": "canon", "inbox/2026-11-01-scout.md": "inbox",
         }
         assert load_manifest(memory.settings) == manifest
+        # Only open proposals from the inbox: curated ones and the README are left out, with reasons.
+        assert {(f.path, f.status) for f in manifest.skipped} == {
+            ("inbox/2026-10-30-coder-inventory.md", "curated"), ("inbox/README.md", None),
+        }
+        assert skipped_summary(manifest.skipped) == (
+            "1 curated inbox file skipped: already in canon or decisions/ (2026-10-30-coder-inventory.md); "
+            "1 inbox file without a status skipped: not a proposal (README.md)."
+        )
         clone = tmp_path / "clone"
         assert _git(clone, "status", "--porcelain") == ""  # read-only: nothing written into the clone
 
@@ -107,11 +120,13 @@ def test_sync_indexes_canon_and_inbox_and_is_idempotent(tmp_path):
         again = await sync(make_memory(tmp_path, services=services, qdrant=qdrant)[0])
         assert again.embedded == 0 and again.unchanged == manifest.embedded and again.removed == []
 
-        # A deleted decision disappears from memory on the next sync.
+        # A deleted decision and a proposal the curator closed disappear on the next sync.
         _git(repo, "rm", "-q", "decisions/0001-ocr.md")
-        _git(repo, "commit", "-q", "-m", "drop decision")
+        (repo / "inbox" / "2026-11-01-scout.md").write_text(INBOX.replace("status: proposed", "status: curated"), encoding="utf-8")
+        _git(repo, "commit", "-q", "-am", "drop decision, curate scout notes")
         third = await sync(make_memory(tmp_path, services=services, qdrant=qdrant)[0])
-        assert third.removed == ["decisions/0001-ocr.md"]
+        assert sorted(third.removed) == ["decisions/0001-ocr.md", "inbox/2026-11-01-scout.md"]
+        assert not any(f.tier == "inbox" for f in third.files)
         assert third.commit == _git(repo, "rev-parse", "HEAD")
         left = {s.source for s in (await server_memory.list_sources("canon")).sources}
         assert not any(s.endswith("0001-ocr.md") for s in left) and "some-bot" in left
@@ -189,7 +204,8 @@ def test_status_in_every_mode(tmp_path):
         full = await memory.status()
         assert full.mode == "full" and full.canon is not None
         assert "fully working" in full.summary and full.canon.commit[:7] in full.summary
-        assert "3 curated files" in full.summary and "1 inbox files" in full.summary
+        assert "3 curated files" in full.summary and "1 open inbox proposals" in full.summary
+        assert "Not indexed: 1 curated inbox file skipped: already in canon" in full.summary
         canon = next(c for c in full.collections if c.name == "canon")
         assert {s.tier for s in canon.sources} == {"canon", "inbox"}
         async with Client(build_server(memory.settings, memory)) as client:

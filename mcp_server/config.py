@@ -88,6 +88,10 @@ class MCPSettings(BaseSettings):
     # Relative to canon_dir, ":"-separated; a folder means every .md file in it.
     canon_files: str = "CANON.md:STATE.md:ORG.md:AGENTS.md:repos.md:decisions"
     canon_inbox: str = "inbox"
+    # Inbox files are indexed only when their frontmatter `status:` is one of these
+    # (comma-separated; "*" = every file). Curated, accepted or rejected proposals
+    # already live in the canon or decisions/, so they would only add noise.
+    canon_inbox_statuses: str = "proposed"
     # Short passages: same recall as 500 tokens on the memory bench, 3x faster rerank.
     canon_chunk_tokens: int = 150
     canon_chunk_overlap_tokens: int = 20

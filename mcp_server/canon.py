@@ -29,6 +29,12 @@ if TYPE_CHECKING:
     from .memory import Memory
 
 MANIFEST_NAME = "canon-sync.json"
+_FRONTMATTER_LINES = 40
+_SKIP_REASON = {
+    "curated": "already in canon or decisions/",
+    "accepted": "already in canon or decisions/",
+    "rejected": "rejected by the curator",
+}
 _MARKDOWN = (".md", ".markdown")
 _OWNER_NAME = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _GIT_TIMEOUT = 300
@@ -38,6 +44,11 @@ class ManifestFile(BaseModel):
     path: str  # relative to the clone
     tier: Literal["canon", "inbox"]
     passages: int
+
+
+class SkippedFile(BaseModel):
+    path: str  # relative to the clone
+    status: str | None  # frontmatter status, None when the file has none
 
 
 class Manifest(BaseModel):
@@ -50,6 +61,8 @@ class Manifest(BaseModel):
     chunk_tokens: int
     chunk_overlap_tokens: int
     files: list[ManifestFile]
+    inbox_statuses: list[str] = []
+    skipped: list[SkippedFile] = []
     embedded: int = 0
     unchanged: int = 0
     removed: list[str] = []
@@ -106,6 +119,45 @@ def markdown_files(path: Path) -> list[Path]:
         if file.is_file() and file.suffix.lower() in _MARKDOWN and not any(p.startswith(".") for p in rel.parts):
             found.append(file)
     return found
+
+
+def frontmatter_status(path: Path) -> str | None:
+    """`status:` from a markdown file's YAML frontmatter, lower case; None without one."""
+    try:
+        with path.open(encoding="utf-8", errors="replace") as fh:
+            lines = [fh.readline() for _ in range(_FRONTMATTER_LINES)]
+    except OSError:
+        return None
+    if not lines or lines[0].strip() != "---":
+        return None
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        key, _, value = line.partition(":")
+        if key.strip().lower() == "status" and value.strip():
+            return value.strip().strip("'\"").lower()
+    return None
+
+
+def skipped_summary(skipped: list[SkippedFile]) -> str | None:
+    """Plain words on inbox files sync left out, e.g. '6 curated inbox files skipped: already in canon …'."""
+    if not skipped:
+        return None
+    groups: dict[str | None, list[str]] = {}
+    for item in skipped:
+        groups.setdefault(item.status, []).append(Path(item.path).name)
+    parts = []
+    for status, names in groups.items():
+        files = "file" if len(names) == 1 else "files"
+        if status:
+            why = _SKIP_REASON.get(status, f"status '{status}' is not an open proposal")
+            part = f"{len(names)} {status} inbox {files} skipped: {why}"
+        else:
+            part = f"{len(names)} inbox {files} without a status skipped: not a proposal"
+        if len(names) <= 3:
+            part += f" ({', '.join(names)})"
+        parts.append(part)
+    return "; ".join(parts) + "."
 
 
 def _split(value: str) -> list[str]:
@@ -184,9 +236,19 @@ async def sync(memory: Memory, *, repo: str | None = None, directory: str | None
     root = Path(raw_dir).expanduser().resolve()
     commit, commit_date, warnings = git_sync(repo, root)
 
-    canon_files, inbox_files = select_files(root, _split(settings.canon_files), _split(settings.canon_inbox))
+    canon_files, inbox_candidates = select_files(root, _split(settings.canon_files), _split(settings.canon_inbox))
     if not canon_files:
         raise ServiceError(f"None of {settings.canon_files!r} exist in {display(root)} (MCP_CANON_FILES).")
+    # Only open proposals: curated, accepted or rejected ones already live in canon or decisions/.
+    statuses = sorted({s.strip().lower() for s in settings.canon_inbox_statuses.split(",") if s.strip()})
+    inbox_files: list[Path] = []
+    skipped: list[SkippedFile] = []
+    for path in inbox_candidates:
+        status = frontmatter_status(path)
+        if "*" in statuses or (status is not None and status in statuses):
+            inbox_files.append(path)
+        else:
+            skipped.append(SkippedFile(path=path.relative_to(root).as_posix(), status=status))
 
     # This run decides tiers from the files just selected, not from an older manifest,
     # and indexes with the short canon passages.
@@ -221,7 +283,8 @@ async def sync(memory: Memory, *, repo: str | None = None, directory: str | None
         repo=repo, dir=display(root), commit=commit, commit_date=commit_date,
         synced_at=datetime.now(UTC).isoformat(timespec="seconds"), collection=collection,
         chunk_tokens=settings.chunk_tokens, chunk_overlap_tokens=settings.chunk_overlap_tokens,
-        files=files, embedded=embedded, unchanged=unchanged, removed=removed, warnings=warnings,
+        files=files, inbox_statuses=statuses, skipped=skipped,
+        embedded=embedded, unchanged=unchanged, removed=removed, warnings=warnings,
     )
     save_manifest(settings, manifest)
     return manifest
@@ -239,5 +302,8 @@ def describe_sync(manifest: Manifest, settings: MCPSettings) -> str:
         + (f", removed files: {', '.join(manifest.removed)}" if manifest.removed else ", nothing removed") + ".",
         f"  Clone: {manifest.dir} (read-only). Record: {display(manifest_path(settings))}.",
     ]
+    skipped = skipped_summary(manifest.skipped)
+    if skipped:
+        lines.insert(2, f"  Not indexed: {skipped}")
     lines += [f"  Warning: {w}" for w in manifest.warnings]
     return "\n".join(lines)
