@@ -179,7 +179,7 @@ Memory holds two kinds of text, and `memory_status` (or `uv run services-bge-mcp
 
 | What | Where | Tier | Who writes it |
 |---|---|---|---|
-| **The team canon**: the files every agent is told to read first (`CANON.md`, `STATE.md`, `ORG.md`, `AGENTS.md`, `repos.md`), the decision records (`decisions/`) and one card per project (`projects/`) | collection `canon` | `canon` | only `services-bge-mcp sync`, from a read-only git clone; the commit is recorded |
+| **The team canon**: the files every agent is told to read first (`CANON.md`, `STATE.md`, `ORG.md`, `AGENTS.md`, `repos.md`), the decision records (`decisions/`), one card per project (`projects/`) and the per-agent instructions (`adapters/`, including `shared-memory.md`) | collection `canon` | `canon` | only `services-bge-mcp sync`, from a read-only git clone; the commit is recorded |
 | Open proposals in the canon repository's `inbox/` (frontmatter `status: proposed`) | collection `canon` | `inbox` | the same sync |
 | Agents' own notes and the files they choose to save (`remember`) | the collection they name, `memory` by default | `inbox` once a canon is synced | any connected agent |
 
