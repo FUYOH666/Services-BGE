@@ -9,6 +9,11 @@ Trust tiers (opt-in, MCP_CANON_PATHS): passages read from curated files are
 stored as tier "canon", every other write as tier "inbox". The tier follows
 from where the text came from; a caller cannot choose it. search can prefer a
 tier, so an unreviewed note does not outrank the curated fact it contradicts.
+The canon files are MCP_CANON_PATHS plus the files `services-bge-mcp sync` indexed
+(see canon.py).
+
+When the embedding service or Qdrant is down, search answers in degraded mode: a
+keyword search over the canon files on disk, marked `degraded`.
 """
 from __future__ import annotations
 
@@ -22,16 +27,18 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from pydantic import BaseModel
 from qdrant_client import AsyncQdrantClient, models
 from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
 
+from . import keyword
+from .canon import Manifest, load_manifest, manifest_path, markdown_files
 from .chunking import Chunk, chunk_text
 from .config import MCPSettings
-from .services import EmbeddingClient, RerankClient, ServiceError
+from .services import EmbeddingClient, RerankClient, ServiceError, ServiceUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +53,7 @@ _NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,62}$")
 _MARKDOWN = {".md", ".markdown", ".mdx"}
 _SKIP_DIRS = {"node_modules", "__pycache__", "venv", "site-packages"}
 _RETRIEVE_BATCH = 256
+_SUMMARY_SOURCES = 30  # sources per tier listed in the status summary
 
 Progress = Callable[[float, float | None, str | None], Awaitable[None]]
 
@@ -73,6 +81,8 @@ class SearchResult(BaseModel):
     note: str | None = None
     # Set when passages from this tier were ranked first (search prefer_tier / MCP_PREFER_TIER).
     prefer_tier: str | None = None
+    # True when the memory services were down and the results come from a keyword search of the canon files.
+    degraded: bool = False
 
 
 class RememberResult(BaseModel):
@@ -111,6 +121,30 @@ class ForgetResult(BaseModel):
     collection: str
     deleted_passages: int
     dropped_collection: bool
+
+
+class SourceDetail(BaseModel):
+    source: str
+    tier: str | None = None
+    passages: int
+
+
+class CollectionDetail(BaseModel):
+    name: str
+    passages: int
+    embedding_model: str | None = None
+    sources: list[SourceDetail]
+    truncated: bool = False
+
+
+class StatusResult(BaseModel):
+    # full: everything up; no-rerank: search works in fusion order; degraded: keyword search
+    # over the canon files only; down: nothing to search.
+    mode: Literal["full", "no-rerank", "degraded", "down"]
+    summary: str
+    services: dict[str, str]
+    canon: Manifest | None = None
+    collections: list[CollectionDetail] = []
 
 
 class RankedDocument(BaseModel):
@@ -199,8 +233,12 @@ class Memory:
         qdrant: AsyncQdrantClient | None = None,
         embedder: EmbeddingClient | None = None,
         reranker: RerankClient | None = None,
+        use_manifest: bool = True,
     ) -> None:
         self.settings = settings
+        # Read the canon sync manifest (MCP_STATE_DIR/canon-sync.json) for canon files.
+        self.use_manifest = use_manifest
+        self._manifest_cache: tuple[float, Manifest | None] | None = None
         self._qdrant = qdrant
         self.embedder = embedder or EmbeddingClient(
             settings.embedding_url,
@@ -257,7 +295,7 @@ class Memory:
             body = exc.content.decode("utf-8", errors="replace")[:300] if exc.content else exc.reason_phrase
             raise ServiceError(f"Qdrant returned {exc.status_code}: {body}") from exc
         except (ResponseHandlingException, httpx.TransportError, ConnectionError) as exc:
-            raise ServiceError(
+            raise ServiceUnavailable(
                 f"Qdrant at {self.settings.qdrant_url} is not reachable. Start it, or set MCP_QDRANT_URL."
             ) from exc
 
@@ -318,9 +356,39 @@ class Memory:
 
     # --- trust tiers -------------------------------------------------------------------
 
-    def _tier_for(self, file: Path | None) -> str | None:
-        """canon for files inside MCP_CANON_PATHS, inbox for everything else; None when tiers are off."""
+    def manifest(self) -> Manifest | None:
+        """The last canon sync, re-read when the file changes."""
+        if not self.use_manifest:
+            return None
+        path = manifest_path(self.settings)
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            return None
+        if self._manifest_cache is None or self._manifest_cache[0] != mtime:
+            self._manifest_cache = (mtime, load_manifest(self.settings))
+        return self._manifest_cache[1]
+
+    def canon_roots(self) -> list[Path]:
+        """MCP_CANON_PATHS plus the canon files of the last sync."""
         roots = self.settings.canon_roots()
+        manifest = self.manifest()
+        if manifest is not None:
+            roots += [p.resolve() for p in manifest.paths(CANON)]
+        return roots
+
+    def canon_files(self) -> list[Path]:
+        """Every curated markdown file on disk, for the keyword fallback."""
+        files: list[Path] = []
+        for root in self.canon_roots():
+            for file in markdown_files(root):
+                if file not in files:
+                    files.append(file)
+        return files
+
+    def _tier_for(self, file: Path | None) -> str | None:
+        """canon for curated files (MCP_CANON_PATHS, canon sync), inbox for everything else; None when tiers are off."""
+        roots = self.canon_roots()
         if not roots:
             return None
         if file is not None and any(file == root or file.is_relative_to(root) for root in roots):
@@ -560,7 +628,83 @@ class Memory:
         name = self.public_name(qname)
         if not query.strip():
             raise ServiceError("`query` is empty.")
-        prefer = (prefer_tier if prefer_tier is not None else self.settings.prefer_tier).strip() or None
+        if prefer_tier is None:
+            # The canon collection ranks curated passages first unless told otherwise.
+            prefer_tier = self.settings.prefer_tier or (CANON if name == self.settings.canon_collection else "")
+        prefer = prefer_tier.strip() or None
+        try:
+            return await self._search(qname, query, top_k=top_k, rerank=rerank, tags=tags, source=source,
+                                      min_score=min_score, tiers=tiers, prefer=prefer)
+        except ServiceUnavailable as exc:
+            files = self.canon_files()
+            if not files:
+                raise
+            return self._keyword_search(name, query, files, reason=str(exc), top_k=top_k, tags=tags,
+                                        source=source, min_score=min_score, tiers=tiers)
+
+    def _keyword_search(
+        self,
+        name: str,
+        query: str,
+        files: list[Path],
+        *,
+        reason: str,
+        top_k: int,
+        tags: list[str] | None,
+        source: str | None,
+        min_score: float | None,
+        tiers: list[str] | None,
+    ) -> SearchResult:
+        """Degraded mode: rank passages of the canon files on disk by the query's words."""
+        manifest = self.manifest()
+        max_tokens = manifest.chunk_tokens if manifest else self.settings.canon_chunk_tokens
+        overlap = manifest.chunk_overlap_tokens if manifest else self.settings.canon_chunk_overlap_tokens
+        passages: list[tuple[str, Chunk]] = []
+        searchable = not _clean_tags(tags) and (not tiers or CANON in tiers)
+        for file in files if searchable else []:
+            src = _display_path(file)
+            if source and source != src:
+                continue
+            text = self._read(file)
+            if text is None:
+                continue
+            for chunk in chunk_text(text, max_tokens=max_tokens, overlap_tokens=overlap, markdown=file.suffix.lower() in _MARKDOWN):
+                passages.append((src, chunk))
+        ranked = keyword.rank(query, [f"{c.section or ''}\n{c.text}".lower() for _, c in passages], stem=True, limit=top_k)
+        results = []
+        for i, score in ranked:
+            src, chunk = passages[i]
+            results.append(Passage(
+                text=chunk.text, source=src, score=round(score, 4), chunk=chunk.index, section=chunk.section, tier=CANON,
+            ))
+        if min_score is not None:
+            results = [p for p in results if p.score >= min_score]
+        canon_md = next((f for f in files if f.name.lower() == "canon.md"), None)
+        note = (
+            f"Degraded mode: {reason} These results come from a plain keyword search of the {len(files)} curated "
+            "canon files on this Mac, not from meaning-based search or saved notes, so answers worded differently "
+            "or in another language can be missed."
+        )
+        if canon_md is not None:
+            note += f" You can read {_display_path(canon_md)} directly."
+        if not results:
+            note += " No canon passage contains the query's words."
+        return SearchResult(collection=name, query=query, reranked=False, results=results, note=note, degraded=True)
+
+    async def _search(
+        self,
+        qname: str,
+        query: str,
+        *,
+        top_k: int,
+        rerank: bool,
+        tags: list[str] | None,
+        source: str | None,
+        min_score: float | None,
+        tiers: list[str] | None,
+        prefer: str | None,
+    ) -> SearchResult:
+        name = self.public_name(qname)
         info = await self._collection(qname)
         if info is None or not info.points_count:
             return SearchResult(
@@ -703,6 +847,63 @@ class Memory:
         sources = [SourceInfo(source=str(hit.value), passages=hit.count) for hit in response.hits]
         return SourcesResult(collection=self.public_name(qname), sources=sources, truncated=len(sources) >= limit)
 
+    async def _sources_by_tier(self, qname: str, limit: int = 200) -> tuple[list[SourceDetail], bool]:
+        out: list[SourceDetail] = []
+        try:
+            tiers = (await self.qdrant.facet(qname, key="tier", limit=20, exact=True)).hits
+            for hit in tiers:
+                flt = models.Filter(must=[models.FieldCondition(key="tier", match=models.MatchValue(value=hit.value))])
+                found = await self.qdrant.facet(qname, key="source", facet_filter=flt, limit=limit, exact=True)
+                out += [SourceDetail(source=str(h.value), tier=str(hit.value), passages=h.count) for h in found.hits]
+            untiered = models.Filter(must=[models.IsEmptyCondition(is_empty=models.PayloadField(key="tier"))])
+            found = await self.qdrant.facet(qname, key="source", facet_filter=untiered, limit=limit, exact=True)
+            out += [SourceDetail(source=str(h.value), passages=h.count) for h in found.hits]
+        except UnexpectedResponse:
+            # A collection from before tiers has no tier index to facet on.
+            found = await self.qdrant.facet(qname, key="source", limit=limit, exact=True)
+            out = [SourceDetail(source=str(h.value), passages=h.count) for h in found.hits]
+        order = {CANON: 0, INBOX: 1}
+        out.sort(key=lambda d: (order.get(d.tier or "", 2), d.source))
+        return out, len(out) >= limit
+
+    async def status(self) -> StatusResult:
+        """What is indexed and which mode search is in, in plain words."""
+        embedding_ok, embedding = await self.embedder.ready()
+        reranker_ok, reranker = await self.reranker.ready()
+        services = {
+            "embedding": f"ok ({embedding})" if embedding_ok else embedding,
+            "reranker": f"ok ({reranker})" if reranker_ok else reranker,
+        }
+        collections: list[CollectionDetail] = []
+        qdrant_ok = True
+        try:
+            async with self._qdrant_errors():
+                prefix = self.settings.collection_prefix
+                response = await self.qdrant.get_collections()
+                for item in sorted(response.collections, key=lambda c: c.name):
+                    if not item.name.startswith(prefix) or not _NAME.match(self.public_name(item.name)):
+                        continue
+                    info = await self.qdrant.get_collection(item.name)
+                    sources, truncated = await self._sources_by_tier(item.name)
+                    collections.append(CollectionDetail(
+                        name=self.public_name(item.name), passages=info.points_count or 0,
+                        embedding_model=(info.config.metadata or {}).get("embedding_model"),
+                        sources=sources, truncated=truncated,
+                    ))
+            services["qdrant"] = f"ok ({self.settings.qdrant_url})"
+        except ServiceError as exc:
+            qdrant_ok = False
+            services["qdrant"] = str(exc)
+
+        manifest = self.manifest()
+        files = self.canon_files()
+        if embedding_ok and qdrant_ok:
+            mode = "full" if reranker_ok else "no-rerank"
+        else:
+            mode = "degraded" if files else "down"
+        summary = _status_summary(mode, embedding_ok, qdrant_ok, manifest, files, collections, self.settings.canon_collection)
+        return StatusResult(mode=mode, summary=summary, services=services, canon=manifest, collections=collections)
+
     async def forget(self, collection: str, *, source: str | None = None, everything: bool = False) -> ForgetResult:
         qname = self.qdrant_name(collection)
         name = self.public_name(qname)
@@ -743,3 +944,61 @@ class Memory:
             model=model,
             results=[RankedDocument(index=i, score=round(score, 4), document=documents[i]) for i, score in ranked],
         )
+
+
+def _status_summary(
+    mode: str,
+    embedding_ok: bool,
+    qdrant_ok: bool,
+    manifest: Manifest | None,
+    files: list[Path],
+    collections: list[CollectionDetail],
+    canon_collection: str,
+) -> str:
+    down = " and ".join(n for n, ok in (("the embedding service", embedding_ok), ("Qdrant", qdrant_ok)) if not ok)
+    canon_md = next((f for f in files if f.name.lower() == "canon.md"), None)
+    lines = [{
+        "full": "Memory is fully working: meaning-based search, reranking and storage are all up.",
+        "no-rerank": "Memory works, but the reranker is down: search returns results in a rougher order.",
+        "degraded": f"Degraded: {down} {'is' if ' and ' not in down else 'are'} down. search falls back to a keyword "
+                    f"search of the {len(files)} curated canon files on this Mac; saved notes cannot be searched until "
+                    "it is back." + (f" Agents can read {_display_path(canon_md)} directly." if canon_md else ""),
+        "down": f"Down: {down} {'is' if ' and ' not in down else 'are'} not reachable and no canon files are known, "
+                "so search cannot answer. Read the canon in git directly.",
+    }[mode]]
+    if manifest is not None:
+        commit = manifest.commit[:7] if manifest.commit else "no commit"
+        canon_n = sum(1 for f in manifest.files if f.tier == CANON)
+        inbox_n = sum(1 for f in manifest.files if f.tier == INBOX)
+        lines.append(
+            f"Team canon: collection '{manifest.collection}' holds {canon_n} curated files "
+            f"({manifest.passages(CANON)} passages, tier canon) and {inbox_n} inbox files "
+            f"({manifest.passages(INBOX)} passages, tier inbox, unreviewed agent reports) from "
+            f"{manifest.repo or manifest.dir} at commit {commit}"
+            + (f" of {manifest.commit_date[:10]}" if manifest.commit_date else "")
+            + f", synced {manifest.synced_at.replace('T', ' ')[:16]} UTC. Nothing else is indexed by sync."
+        )
+    else:
+        lines.append("No team canon has been synced yet (services-bge-mcp sync --repo <owner/name> --dir <folder>).")
+    for c in collections:
+        tiers: dict[str, int] = {}
+        for src in c.sources:
+            tiers[src.tier or "no tier"] = tiers.get(src.tier or "no tier", 0) + src.passages
+        split = ", ".join(f"{k} {v}" for k, v in tiers.items())
+        role = " (the team canon; agents' notes saved here are tier inbox)" if c.name == canon_collection else ""
+        lines.append(
+            f"Collection '{c.name}'{role}: {c.passages} passages from "
+            f"{len(c.sources)}{'+' if c.truncated else ''} sources" + (f" ({split})" if split else "") + "."
+        )
+        prefix = manifest.dir + "/" if manifest is not None else None
+        for tier in dict.fromkeys(src.tier for src in c.sources):
+            group = [src for src in c.sources if src.tier == tier]
+            names = [
+                f"{src.source[len(prefix):] if prefix and src.source.startswith(prefix) else src.source} ({src.passages})"
+                for src in group[:_SUMMARY_SOURCES]
+            ]
+            more = f", and {len(group) - _SUMMARY_SOURCES} more" if len(group) > _SUMMARY_SOURCES else ""
+            lines.append(f"  {tier or 'no tier'}: " + ", ".join(names) + more)
+    if qdrant_ok and not collections:
+        lines.append("No memory collections exist yet.")
+    return "\n".join(lines)

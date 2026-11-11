@@ -22,13 +22,14 @@ A third process, `mcp_server/` (`services-bge-mcp`), is an MCP server that gives
 | `*/config.py` | pydantic-settings, env prefix `EMBEDDING_` / `RERANKER_` |
 | `service_common/runtime.py` | Shared: API key, limits, MPS cache policy, model path resolution, token counting |
 | `profiles/*.env` | One file per model deployment; `scripts/sidecar.sh` runs them on 9011+ |
-| `mcp_server/` | MCP memory server: `server.py` (tools, transports), `memory.py` (Qdrant logic), `chunking.py`, `services.py` (HTTP clients), `config.py` (`MCP_*`) |
+| `mcp_server/` | MCP memory server: `server.py` (tools, transports, `sync` / `status` commands), `memory.py` (Qdrant logic, degraded fallback, status), `canon.py` (team canon sync + manifest), `keyword.py` (model-free keyword ranking), `chunking.py`, `services.py` (HTTP clients), `config.py` (`MCP_*`) |
 | `scripts/run_service.sh` | Entry point for launchd and sidecars (`.env`, profile, offline mode) |
 | `scripts/parity_check.py` | Compares two deployments (vectors, rerank order, latency, memory) |
 | `eval/` | Retrieval eval (`run_eval.py`), comparison table (`compare.py`), agent memory bench (`memory_bench.py`), datasets, results; `eval/private/` is gitignored |
 | `tests/test_service_endpoints.py` | Contract and behaviour tests with fake models |
 | `tests/test_mcp_server.py` | MCP tools with fake services and in-memory Qdrant |
 | `tests/test_memory_bench.py` | Memory bench on the synthetic set, offline |
+| `tests/test_canon_sync.py` | Canon sync from a local git repo, degraded search, status |
 | `docs/` | API, configuration, models, operations, roadmap, brand assets |
 
 ## Commands
@@ -43,6 +44,7 @@ uv run python scripts/parity_check.py     # A = 9001/9002 vs B = 9101/9102
 uv run python eval/run_eval.py --dataset eval/datasets/demo_ru --name <label>
 uv run python scripts/mcp_smoke.py       # MCP round trip on live services + Qdrant, scratch collection
 uv run python eval/memory_bench.py --bench eval/datasets/memory_synthetic   # memory retrieval + poisoning, scratch collection
+uv run services-bge-mcp status            # what memory holds and whether search works (read-only)
 ```
 
 CI (`.github/workflows/test.yml`) runs pytest on Ubuntu with only the web stack installed, plus a secret and personal-path scan.
@@ -54,7 +56,7 @@ CI (`.github/workflows/test.yml`) runs pytest on Ubuntu with only the web stack 
 - Tests must not download models or reach the network: stub `FlagEmbedding`, `sentence_transformers` and friends via `sys.modules` like the existing fixtures.
 - Keep the default bind address `127.0.0.1`.
 - MCP server: only touch Qdrant collections with `MCP_COLLECTION_PREFIX` (`mcp_`); never write to stdout on the stdio transport; destructive tools need an explicit target. Smoke tests use a scratch collection and delete it.
-- Trust tiers come from where text was read (`MCP_CANON_PATHS`), never from the caller; keep `remember` without a tier argument. Private golden sets and their results live in `eval/private/` only.
+- Trust tiers come from where text was read (`MCP_CANON_PATHS`, the canon sync record), never from the caller; keep `remember` without a tier argument. Canon sync only reads its clone (no commits or pushes) and indexes only the configured canon files; never index personal agent memories, secrets or code. Private golden sets and their results live in `eval/private/` only.
 - New models go in as a profile first. Only mark a profile *verified* in `docs/MODELS.md` after it loaded and scored on real hardware.
 - Model or precision changes need evidence: `parity_check.py` for drift, `eval/run_eval.py` for quality.
 - No absolute personal paths, IPs or secrets in tracked files (CI greps for them). Use `~` or `$HOME`.

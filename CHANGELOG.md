@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+Agent memory that works in any state, with a visible team canon (opt-in; default API unchanged):
+
+- `services-bge-mcp sync`: clones the team canon repository or fast-forwards its clone (read-only: never commits or pushes), indexes the read-first files and `decisions/` as tier `canon` and `inbox/` as tier `inbox` into collection `canon`, in 150-token passages; idempotent (only changed passages are embedded, passages of deleted files are removed); writes `~/.services-bge/canon-sync.json` with repository, commit, time and files
+- the server reads that record: synced canon files count as canon, every agent write is tier `inbox`, the `canon` collection ranks canon first by default, and the instructions tell agents where the canon is
+- degraded mode: when the embedding service or Qdrant is down, `search` answers with a keyword search over the canon files on disk, `degraded: true` and a note naming what is down and which `CANON.md` to read; reranker-only failures keep the fusion-order fallback; without canon files an outage is still an error
+- `memory_status` tool and `services-bge-mcp status`: mode (full / no-rerank / degraded / down), the synced canon, and every collection with sources, tiers and passage counts, in plain words
+- docs: "What is in the memory and why", sync, outage modes, a protocol snippet for agents, and the cloud option (OpenRouter embeddings, not built) in `docs/AGENT-MEMORY.md`; `mcp_server/keyword.py` now serves both the fallback and the bench's grep baseline
+
 Agent memory: trust tiers and a measured bench (opt-in; default behaviour and the HTTP APIs are unchanged):
 
 - trust tiers: with `MCP_CANON_PATHS` set, passages read from those files or folders are stored as `tier: "canon"` and every other write (notes, other files) as `tier: "inbox"`; the tier comes from where the text was read, `remember` has no tier argument; re-reading files after enabling tiers relabels them without re-embedding

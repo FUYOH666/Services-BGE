@@ -46,6 +46,7 @@ if str(PROJECT_DIR) not in sys.path:
 
 from qdrant_client import models  # noqa: E402
 
+from mcp_server import keyword  # noqa: E402
 from mcp_server.chunking import estimate_tokens  # noqa: E402
 from mcp_server.config import MCPSettings  # noqa: E402
 from mcp_server.memory import Memory  # noqa: E402
@@ -54,18 +55,6 @@ TOP_K = 10
 LANGS = ("ru", "en", "mixed")
 CLEAN_METHODS = ("grep", "grep_stem", "dense", "sparse", "hybrid", "hybrid+rerank", "hybrid+rerank, prefer canon")
 
-# Words an agent would not grep for. Short words (< 3 letters) are dropped as well.
-STOPWORDS = set("""
-the and are was were does did what which who whom how why where when can could should would
-our ours you your for with from that this these those there their them they its into about
-any much many one has have had now not but all out use used get got still just than then
-also more most some such very own each other only same being been will shall may might must
-что как какой какая какое какие каких каким кто где когда почему зачем ли можно нужно надо
-это этот эта эти том той тот там тут для без при над под через после перед между или если
-так также уже ещё еще есть был была были было будет быть нас наш наша наше наши нам нами
-мы вы они она оно его её ее их чем чего сейчас сколько который которая которые кого кому
-""".split())
-_TERM = re.compile(r"\w+")
 _SPACES = re.compile(r"\s+")
 
 
@@ -210,28 +199,12 @@ def percentile(values: list[float], q: float) -> float:
 
 
 def grep_terms(query: str, stem: bool) -> list[str]:
-    terms: list[str] = []
-    for term in _TERM.findall(query.lower()):
-        if len(term) < 3 or term in STOPWORDS:
-            continue
-        if stem and len(term) > 5:
-            term = term[:5]
-        if term not in terms:
-            terms.append(term)
-    return terms
+    return keyword.terms(query, stem=stem)
 
 
 def grep_rank(query: str, passages: list[Hit], stem: bool) -> list[Hit]:
     """Passages ranked by distinct query terms found (case-insensitive substrings), then by occurrences."""
-    terms = grep_terms(query, stem)
-    scored = []
-    for i, passage in enumerate(passages):
-        counts = [passage.haystack.count(t) for t in terms]
-        matched = sum(1 for c in counts if c)
-        if matched:
-            scored.append((-matched, -sum(counts), i))
-    scored.sort()
-    return [passages[i] for _, _, i in scored[:TOP_K]]
+    return [passages[i] for i, _ in keyword.rank(query, [p.haystack for p in passages], stem=stem, limit=TOP_K)]
 
 
 # --- the bench -------------------------------------------------------------------------------
@@ -329,10 +302,11 @@ async def run(args: argparse.Namespace, memory: Memory | None = None) -> dict:
         if getattr(args, key, None):
             overrides[key] = getattr(args, key)
     if memory is None:
-        memory = Memory(MCPSettings(**overrides))
+        memory = Memory(MCPSettings(**overrides), use_manifest=False)
     else:
         for key, value in overrides.items():
             setattr(memory.settings, key, value)
+    memory.use_manifest = False  # tiers come from bench.json only, never from a synced canon
     settings = memory.settings
     bench = Bench(memory, collection, slices)
     log = lambda msg: print(msg, file=sys.stderr, flush=True)  # noqa: E731

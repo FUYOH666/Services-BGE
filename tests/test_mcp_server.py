@@ -62,6 +62,8 @@ class FakeServices:
         return dense, {"indices": indices, "values": [lexical[i] for i in indices]}
 
     def embed_handler(self, request: httpx.Request) -> httpx.Response:
+        if request.method == "GET":  # /readyz
+            return httpx.Response(200, json={"status": "ok", "model": self.model, "ready": True})
         body = json.loads(request.content)
         self.embed_requests.append(body)
         data = []
@@ -77,6 +79,8 @@ class FakeServices:
     def rerank_handler(self, request: httpx.Request) -> httpx.Response:
         if self.rerank_down:
             raise httpx.ConnectError("connection refused")
+        if request.method == "GET":  # /readyz
+            return httpx.Response(200, json={"status": "ok", "model": "BAAI/bge-reranker-v2-m3", "ready": True})
         body = json.loads(request.content)
         self.rerank_requests.append(body)
         query = set(_tokens(body["query"]))
@@ -92,6 +96,7 @@ class FakeServices:
 
 def make_memory(tmp_path: Path, services: FakeServices | None = None, qdrant: AsyncQdrantClient | None = None, **overrides):
     services = services or FakeServices()
+    overrides.setdefault("state_dir", str(tmp_path / "state"))  # never the real canon-sync manifest
     settings = MCPSettings(_env_file=None, allowed_paths=str(tmp_path), **overrides)
     memory = Memory(
         settings,
@@ -124,9 +129,11 @@ def test_tools_are_listed_with_safety_annotations(tmp_path):
         memory, _ = make_memory(tmp_path)
         async with Client(build_server(memory.settings, memory)) as client:
             tools = {t.name: t for t in (await client.list_tools()).tools}
-            assert set(tools) == {"remember", "search", "list_collections", "list_sources", "forget", "rerank", "embed"}
+            assert set(tools) == {
+                "remember", "search", "memory_status", "list_collections", "list_sources", "forget", "rerank", "embed",
+            }
             assert tools["forget"].annotations.destructive_hint is True
-            for name in ("search", "list_collections", "list_sources", "rerank", "embed"):
+            for name in ("search", "memory_status", "list_collections", "list_sources", "rerank", "embed"):
                 assert tools[name].annotations.read_only_hint is True
             assert tools["search"].output_schema["properties"]["results"]
             assert "ctx" not in tools["remember"].input_schema["properties"]
@@ -526,7 +533,7 @@ def test_unreachable_services_give_actionable_errors(tmp_path):
         raise httpx.ConnectError("connection refused")
 
     async def scenario():
-        settings = MCPSettings(_env_file=None, allowed_paths=str(tmp_path))
+        settings = MCPSettings(_env_file=None, allowed_paths=str(tmp_path), state_dir=str(tmp_path / "state"))
         memory = Memory(
             settings,
             qdrant=AsyncQdrantClient(location=":memory:"),

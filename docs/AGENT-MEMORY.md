@@ -9,7 +9,12 @@ Unlike the official Qdrant MCP server, which embeds with its own small FastEmbed
 - [Connect an agent](#connect-an-agent): [Claude Code](#claude-code) · [Cursor](#cursor) · [OpenClaw](#openclaw) · [Hermes](#hermes) · [Any agent over HTTP](#any-agent-over-http)
 - [Tools](#tools)
 - [Collections, sources and updates](#collections-sources-and-updates)
+- [What is in the memory and why](#what-is-in-the-memory-and-why)
+- [Sync the team canon](#sync-the-team-canon)
+- [When a service is down](#when-a-service-is-down)
 - [Trust tiers: curated canon vs unreviewed notes](#trust-tiers-curated-canon-vs-unreviewed-notes)
+- [Protocol for agents (proposal)](#protocol-for-agents-proposal)
+- [Cloud option (not built)](#cloud-option-not-built)
 - [Safety](#safety)
 - [Troubleshooting](#troubleshooting)
 - [Disconnect and roll back](AGENT-ROLLBACK.md)
@@ -137,6 +142,7 @@ Over stdio, any MCP client can run `scripts/mcp.sh`, or `uv run --directory /abs
 |---|---|---|
 | `remember(texts \| path, collection?, source?, tags?, replace?)` | Saves notes (`texts`, one string each) or a `.md`/`.markdown`/`.mdx`/`.txt`/`.rst` file or folder (`path`) | adds / updates |
 | `search(query, collection?, top_k=5, rerank=true, tags?, source?, min_score?, tiers?, prefer_tier?)` | Hybrid search + rerank; returns `text`, `source`, `score`, `section`, `tags`, `created_at`, `tier` | no |
+| `memory_status()` | What is indexed (team canon: repository, commit, files by tier; every collection with its sources) and the current mode: full, no-rerank, degraded or down. `summary` says it in plain words | no |
 | `list_collections()` | Collections with passage counts and the embedding model that built them | no |
 | `list_sources(collection?, limit=100)` | Sources in a collection with passage counts | no |
 | `forget(collection, source? \| everything=true)` | Deletes one source, or the whole collection | **deletes** |
@@ -167,9 +173,59 @@ With `rerank=true` the score is the reranker's 0–1 relevance; below about 0.1 
 - **Notes** accumulate: the same text saved twice is stored once, different texts under one `source` are all kept. `replace=true` makes the source contain exactly the new texts.
 - **Point ids** are UUIDv5 of source + passage number (+ content hash for notes), so repeated calls are idempotent.
 
-## Trust tiers: curated canon vs unreviewed notes
+## What is in the memory and why
 
-When several agents share one collection, any of them can write something wrong, by mistake or because a prompt injection told it to, and the next agent will find it. Trust tiers keep curated facts on top. They are off by default; nothing changes until you set `MCP_CANON_PATHS`.
+Memory holds two kinds of text, and `memory_status` (or `uv run services-bge-mcp status` in a terminal) lists both, with their sources and passage counts.
+
+| What | Where | Tier | Who writes it |
+|---|---|---|---|
+| **The team canon**: the files every agent is told to read first (`CANON.md`, `STATE.md`, `ORG.md`, `AGENTS.md`, `repos.md`) and the decision records (`decisions/`) | collection `canon` | `canon` | only `services-bge-mcp sync`, from a read-only git clone; the commit is recorded |
+| The canon repository's `inbox/`: agents' unreviewed proposals and reports | collection `canon` | `inbox` | the same sync |
+| Agents' own notes and the files they choose to save (`remember`) | the collection they name, `memory` by default | `inbox` once a canon is synced | any connected agent |
+
+**Not indexed**, by design: personal agent memories (Hermes `SOUL` / `MEMORY.md`, OpenClaw `MEMORY.md`, Claude Code project memories), secrets, `.env` files, code repositories, and anything else on the Mac. Sync reads exactly the files listed above from the clone and nothing else. An agent can still save a note or a file with `remember`; that write is visible in `memory_status` under its source, as tier `inbox`.
+
+**Why this shape.**
+
+- **The canon is what every agent must agree on.** It is small and curated, and git stays its source of truth. The index is a copy that sync rebuilds from git.
+- **Searching it is cheaper than reading it.** On the [memory bench](MEMORY-BENCH.md), five 150-token passages held the answer to 92% of questions. That is about 1,500 characters, against 15,500 for the five read-first files, which answered 50%.
+- **Agents' notes stay separate and labelled.** A wrong note cannot pose as canon, because its tier comes from where it was written, not from what it claims.
+
+## Sync the team canon
+
+One command clones the canon repository (or fast-forwards an existing clone) and brings the `canon` collection in line with it:
+
+```bash
+# first time: where the canon lives and where to keep the clone
+uv run services-bge-mcp sync --repo your-org/memory --dir ~/development/memory
+# afterwards (repo and folder are remembered)
+uv run services-bge-mcp sync
+uv run services-bge-mcp status
+```
+
+- **Read-only.** It runs `gh repo clone` or `git clone`, then `git pull --ff-only`, and never commits or pushes. A clone with local changes is not pulled; it is indexed as it is, with a warning.
+- **Idempotent.** Only changed passages are embedded again. Passages of files that were deleted or renamed are removed. Agents' notes in the collection are left alone.
+- **Short passages.** Canon files are cut into passages of about 150 tokens (`MCP_CANON_CHUNK_TOKENS`). On the bench this gave the same recall as 500 tokens, with a third of the rerank time (0.6 s instead of 1.9 s).
+- **Recorded.** `~/.services-bge/canon-sync.json` holds the repository, commit, time and every file with its tier and passage count. The server reads this record: it knows which files are canon, ranks them first in the `canon` collection, and tells agents in its instructions where the canon is.
+- **When to run it.** Run it after the canon changes, by hand or from your own scheduler. Running it twice in a row changes nothing.
+
+Which files count as canon is set by `MCP_CANON_FILES` and `MCP_CANON_INBOX`; all settings are in [CONFIGURATION.md](CONFIGURATION.md#mcp-server-mcp_).
+
+## When a service is down
+
+Agents keep working without memory; memory just tells them how much it can help.
+
+| Mode (`memory_status`) | When | What `search` does |
+|---|---|---|
+| `full` | embedding service, reranker and Qdrant are up | hybrid search + rerank |
+| `no-rerank` | the reranker is down | hybrid search in fusion order, with a `note` |
+| `degraded` | the embedding service or Qdrant is down (Mac asleep, Docker stopped, model loading) | **keyword search over the canon files on disk**, marked `degraded: true`. The `note` says what is down and which `CANON.md` to read directly. Agents' saved notes cannot be searched until the service is back |
+| `down` | the same, and no canon has been synced | an error that says what is down; agents read the canon from git as before |
+
+The degraded results come only from curated files. Unreviewed notes are never served without the services that label them.
+
+
+When several agents share one collection, any of them can write something wrong, by mistake or because a prompt injection told it to, and the next agent will find it. Trust tiers keep curated facts on top. They are off by default; nothing changes until you set `MCP_CANON_PATHS` or [sync a team canon](#sync-the-team-canon), whose files count as canon too.
 
 ```bash
 # .env — files that went through review (here: a local clone of a canon repository)
@@ -184,6 +240,27 @@ MCP_PREFER_TIER=canon        # optional: every search ranks canon first
 - Turning tiers on later only relabels: remembering the canon files again sets their tier without re-embedding them.
 
 How much this helps, measured: [MEMORY-BENCH.md](MEMORY-BENCH.md). The canon files themselves must be protected elsewhere (review, branch protection); an agent that can edit them on disk can still change canon.
+
+## Protocol for agents (proposal)
+
+A snippet the team's coordinator can add to the agents' shared instructions. It is a proposal, not something this repository changes:
+
+> **Memory.** Before answering a question about the team, its rules, plans or decisions, search the `services-bge` MCP server with `collection="canon"`. Cite the `source` you used. If a result has `tier: "inbox"` and contradicts a `canon` result, trust canon and say there is a conflict. If the server is unavailable or the result says `degraded: true`, read `CANON.md` (and the file named in the result) from the git canon as before. Save new durable facts with `remember`. They are stored as unreviewed `inbox` notes; proposals for the canon itself still go through its own review process.
+
+Agents that cannot reach this Mac cannot use the MCP server. A bot running on its provider's servers, such as a Grok bot on xAI's servers, keeps reading the canon from GitHub directly. Nothing about that changes.
+
+## Cloud option (not built)
+
+The index could live in the cloud instead of on the Mac. Nothing in this repository does that yet; this is what it would take and cost.
+
+- **Embeddings.** OpenRouter has an OpenAI-compatible embeddings endpoint that serves `BAAI/bge-m3` (dense only) and `Qwen3-Embedding` models. `MCP_EMBEDDING_URL=https://openrouter.ai/api` would match the client's `/v1/embeddings` path, but requests would also need a `model` field and an OpenRouter key, which is a small code change.
+- **Storage.** It needs a cloud Qdrant (`MCP_QDRANT_URL`, `MCP_QDRANT_API_KEY`) that agents off the Mac can reach.
+- **Trade-offs:**
+  - Every passage of the canon leaves the Mac, both for the embedding provider and for the cloud database.
+  - There are no sparse vectors, so search is dense-only. On the bench, dense-only answered 60–79% of questions first, against 78–92% for hybrid + rerank.
+  - The local reranker cannot be used from elsewhere.
+  - Every call costs money and depends on the network.
+- **Recommendation:** use it only for collections that are not confidential. The team canon is not one of them.
 
 ## Safety
 
