@@ -86,7 +86,7 @@ The [agent memory server](AGENT-MEMORY.md) reads the environment and the project
 | `MCP_TIER_PENALTY` | `0.5` | With a preferred tier, scores of passages from other tiers are multiplied by this (0–1) |
 | `MCP_CANON_REPO` / `MCP_CANON_DIR` | — | Team canon for `services-bge-mcp sync`: repository (`owner/name`, git URL or local path) and where its read-only clone lives. `--repo` / `--dir` win; both are remembered after the first sync |
 | `MCP_CANON_COLLECTION` | `canon` | Collection sync writes to; searches in it rank tier `canon` first unless `prefer_tier` says otherwise |
-| `MCP_CANON_FILES` | `CANON.md:STATE.md:ORG.md:AGENTS.md:repos.md:decisions` | Files and folders in the clone indexed as tier `canon` (`:`-separated; a folder means its `.md` files) |
+| `MCP_CANON_FILES` | `CANON.md:STATE.md:ORG.md:AGENTS.md:repos.md:decisions:projects` | Files and folders in the clone indexed as tier `canon` (`:`-separated; a folder means its `.md` files) |
 | `MCP_CANON_INBOX` | `inbox` | Files and folders in the clone indexed as tier `inbox` |
 | `MCP_CANON_INBOX_STATUSES` | `proposed` | Inbox files are indexed only when their frontmatter `status:` is one of these (comma-separated; `*` = all). Curated, accepted and rejected proposals already live in the canon |
 | `MCP_CANON_CHUNK_TOKENS` / `MCP_CANON_CHUNK_OVERLAP_TOKENS` | `150` / `20` | Passage size for the canon (shorter than notes: same recall, faster rerank) |

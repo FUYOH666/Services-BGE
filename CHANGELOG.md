@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- canon sync also indexes `projects/` (one card per project, decision 0013 in the team canon) as tier `canon`
+- `./scripts/service.sh memory-sync on|off|now|status`: an opt-in launchd agent (`com.services-bge.memory-sync`) pulls the canon and re-indexes it at login and every 30 minutes; `scripts/memory_sync.sh` runs one sync
 - canon sync indexes only open inbox proposals (frontmatter `status: proposed`, `MCP_CANON_INBOX_STATUSES`); curated, accepted and rejected files and files without a status are skipped and their passages removed; `memory_status`, `status` and `sync` say in plain words what was skipped and why
 
 Agent memory that works in any state, with a visible team canon (opt-in; default API unchanged):

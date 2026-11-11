@@ -86,7 +86,7 @@ class MCPSettings(BaseSettings):
     canon_dir: str = ""  # where the clone lives, e.g. ~/development/memory
     canon_collection: str = "canon"
     # Relative to canon_dir, ":"-separated; a folder means every .md file in it.
-    canon_files: str = "CANON.md:STATE.md:ORG.md:AGENTS.md:repos.md:decisions"
+    canon_files: str = "CANON.md:STATE.md:ORG.md:AGENTS.md:repos.md:decisions:projects"
     canon_inbox: str = "inbox"
     # Inbox files are indexed only when their frontmatter `status:` is one of these
     # (comma-separated; "*" = every file). Curated, accepted or rejected proposals
