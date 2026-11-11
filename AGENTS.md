@@ -1,0 +1,52 @@
+# AGENTS.md
+
+Guidance for AI coding agents (Claude Code, Codex, Cursor, Copilot, …) working in this repository. Humans: see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## What this is
+
+Services-BGE: local embedding and reranking APIs for hybrid search on Apple Silicon, plus tools to compare models. Two FastAPI processes, one model each:
+
+- `embedding_service/` — `POST /v1/embeddings` on `127.0.0.1:9001` (production model BAAI/bge-m3: dense + sparse + ColBERT).
+- `reranker_service/` — `POST /v1/rerank` on `127.0.0.1:9002` (production model BAAI/bge-reranker-v2-m3).
+
+Both start at login as launchd agents (`launchd/*.plist`, installed by `scripts/service.sh install`). About eight local projects call them, so the HTTP contract matters more than anything else here.
+
+## Layout
+
+| Path | What |
+|---|---|
+| `embedding_service/main.py`, `reranker_service/main.py` | HTTP layer: validation, limits, auth, response shape |
+| `embedding_service/backends.py`, `reranker_service/backends.py` | Model backends (`bge-m3`, `sentence-transformers`; `flag-reranker`, `cross-encoder`, `qwen3-reranker`) |
+| `*/config.py` | pydantic-settings, env prefix `EMBEDDING_` / `RERANKER_` |
+| `service_common/runtime.py` | Shared: API key, limits, MPS cache policy, model path resolution, token counting |
+| `profiles/*.env` | One file per model deployment; `scripts/sidecar.sh` runs them on 9011+ |
+| `scripts/run_service.sh` | Entry point for launchd and sidecars (`.env`, profile, offline mode) |
+| `scripts/parity_check.py` | Compares two deployments (vectors, rerank order, latency, memory) |
+| `eval/` | Retrieval eval (`run_eval.py`), comparison table (`compare.py`), datasets, results |
+| `tests/test_service_endpoints.py` | Contract and behaviour tests with fake models |
+| `docs/` | API, configuration, models, operations, roadmap, brand assets |
+
+## Commands
+
+```bash
+uv sync --extra dev                       # Python 3.12 env
+uv run --extra dev pytest -q              # fast, never downloads models
+uv lock --check
+bash -n scripts/*.sh                      # shell syntax
+./scripts/sidecar.sh list                 # profiles and their state
+uv run python scripts/parity_check.py     # A = 9001/9002 vs B = 9101/9102
+uv run python eval/run_eval.py --dataset eval/datasets/demo_ru --name <label>
+```
+
+CI (`.github/workflows/test.yml`) runs pytest on Ubuntu with only the web stack installed, plus a secret and personal-path scan.
+
+## Rules
+
+- **The default response shape is a contract.** Never remove or rename `embedding`, `dense_embedding`, `sparse_embedding`, `sparse_qdrant`, `colbert_embedding`, `index`, `relevance_score`, `document`, `usage`. New behaviour must be opt-in. The contract tests must stay green.
+- **Do not stop or restart the user's running services** (launchd labels `com.services-bge.embedding`, `com.services-bge.reranker`, ports 9001/9002). Test changes on side ports: `EMBEDDING_PORT=9101 ./scripts/run_service.sh embedding`, then `scripts/parity_check.py`.
+- Tests must not download models or reach the network: stub `FlagEmbedding`, `sentence_transformers` and friends via `sys.modules` like the existing fixtures.
+- Keep the default bind address `127.0.0.1`.
+- New models go in as a profile first. Only mark a profile *verified* in `docs/MODELS.md` after it loaded and scored on real hardware.
+- Model or precision changes need evidence: `parity_check.py` for drift, `eval/run_eval.py` for quality.
+- No absolute personal paths, IPs or secrets in tracked files (CI greps for them). Use `~` or `$HOME`.
+- Keep `CHANGELOG.md` updated for user-visible changes.

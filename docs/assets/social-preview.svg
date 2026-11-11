@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+<rect width="1280" height="640" fill="#0D1117"/>
+<g transform="translate(120 160)"><g transform="scale(2.0)"><rect width="120" height="120" rx="30" fill="#161B22" stroke="#30363D" stroke-width="2"/><circle cx="28" cy="36" r="6" fill="#A78BFA" opacity="1.0"/><rect x="42" y="31" width="54" height="10" rx="5" fill="#A78BFA" opacity="1.0"/><circle cx="28" cy="60" r="6" fill="#A78BFA" opacity="0.55"/><rect x="42" y="55" width="38" height="10" rx="5" fill="#A78BFA" opacity="0.55"/><circle cx="28" cy="84" r="6" fill="#A78BFA" opacity="0.3"/><rect x="42" y="79" width="22" height="10" rx="5" fill="#A78BFA" opacity="0.3"/></g></g>
+<text x="420" y="250" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="92" fill="#F0F6FC" font-weight="700" letter-spacing="-2">Services-BGE</text>
+<text x="424" y="312" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="32" fill="#9DA7B3">Embeddings + reranking on Apple Silicon.</text>
+<text x="424" y="356" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="32" fill="#9DA7B3">Hybrid search · model profiles · built-in eval</text>
+<rect x="120" y="470" width="1040" height="2" fill="#30363D"/>
+<text x="120" y="534" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="27" fill="#9DA7B3">bge-m3 · Qwen3 · FastAPI · Qdrant · OpenAI-compatible API · MIT</text>
+</svg>

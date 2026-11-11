@@ -27,6 +27,8 @@ Commands:
   restart     Stop then start both services
   status      Show PID, readiness, and log paths
   logs        Tail logs from both services (Ctrl+C to stop)
+  rotate-logs Archive and truncate log files larger than ROTATE_MAX_MB (default 10),
+              keeping ROTATE_KEEP (default 5) gzip archives per file
 
 EOF
     exit 1
@@ -233,6 +235,41 @@ cmd_logs() {
     tail -f "$LOG_DIR"/embedding.log "$LOG_DIR"/reranker.log "$LOG_DIR"/embedding.err "$LOG_DIR"/reranker.err 2>/dev/null
 }
 
+cmd_rotate_logs() {
+    local max_mb="${ROTATE_MAX_MB:-10}"
+    local keep="${ROTATE_KEEP:-5}"
+
+    if [ ! -d "$LOG_DIR" ]; then
+        echo "No log directory at $LOG_DIR"
+        exit 0
+    fi
+
+    echo "=== Rotating BGE logs larger than ${max_mb} MB (keep $keep) ==="
+    local stamp
+    stamp="$(date +%Y%m%d-%H%M%S)"
+
+    for f in "$LOG_DIR"/*.log "$LOG_DIR"/*.err; do
+        [ -f "$f" ] || continue
+        local size_mb
+        size_mb=$(( $(stat -f %z "$f") / 1024 / 1024 ))
+        if [ "$size_mb" -lt "$max_mb" ]; then
+            continue
+        fi
+
+        # launchd keeps the file open in append mode, so copy + truncate is safe.
+        gzip -c "$f" > "$f.$stamp.gz"
+        : > "$f"
+        echo "  Rotated $(basename "$f") (${size_mb} MB) -> $(basename "$f").$stamp.gz"
+
+        # Keep only the newest $keep archives for this file.
+        # shellcheck disable=SC2012
+        ls -1t "$f".*.gz 2>/dev/null | tail -n +"$((keep + 1))" | while read -r old; do
+            rm -f "$old"
+        done
+    done
+    echo "Done."
+}
+
 if [ $# -lt 1 ]; then
     usage
 fi
@@ -245,5 +282,6 @@ case "$1" in
     restart)   cmd_restart ;;
     status)    cmd_status ;;
     logs)      cmd_logs ;;
+    rotate-logs) cmd_rotate_logs ;;
     *)         usage ;;
 esac

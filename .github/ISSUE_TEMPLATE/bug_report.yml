@@ -1,0 +1,31 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got.
+    validations:
+      required: true
+  - type: textarea
+    id: request
+    attributes:
+      label: Request and response
+      description: The request (curl or code) and the response or status code. Remove private text.
+      render: shell
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log lines
+      description: From ~/Library/Logs/Services-BGE/*.err (or the sidecar log).
+      render: text
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: Mac model and memory, macOS version, Services-BGE version or commit, profile/backend.
+      placeholder: "M4 Max 128 GB, macOS 27.2, v0.2.0, bge-m3"
+    validations:
+      required: true

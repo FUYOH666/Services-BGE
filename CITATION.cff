@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use Services-BGE or its evaluation harness in your work, please cite it as below."
+title: "Services-BGE: local embedding and reranking services with model evaluation for hybrid search on Apple Silicon"
+abstract: "Local OpenAI-compatible embedding (BAAI/bge-m3: dense, sparse and ColBERT vectors) and reranking services for hybrid search, with pluggable model backends, side-by-side model profiles and a retrieval evaluation harness."
+type: software
+authors:
+  - family-names: Mordvinov
+    given-names: Aleksandr
+    alias: FUYOH666
+repository-code: "https://github.com/FUYOH666/Services-BGE"
+license: MIT
+version: 0.2.0
+date-released: 2026-11-11
+keywords:
+  - embeddings
+  - reranking
+  - hybrid search
+  - retrieval evaluation
+  - bge-m3
+  - qdrant
+  - apple silicon

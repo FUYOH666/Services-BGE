@@ -1,0 +1,19 @@
+# Services-BGE
+
+> Local embedding and reranking APIs for hybrid search on Apple Silicon Macs, plus tools to compare models on your own data. Serves BAAI/bge-m3 (dense 1024 + sparse lexical weights + ColBERT vectors in one pass) on http://127.0.0.1:9001/v1/embeddings (OpenAI-compatible; works with the official OpenAI SDK via base_url) and BAAI/bge-reranker-v2-m3 on http://127.0.0.1:9002/v1/rerank (Cohere/Jina-style). Other models (Qwen3-Embedding, Qwen3-Reranker, multilingual-e5, any SentenceTransformer) run as sidecars from profiles/*.env; eval/run_eval.py measures recall, nDCG, MRR and HS-code accuracy. Sparse output is shaped for Qdrant sparse vectors. PyTorch MPS, launchd, Python 3.12, MIT license.
+
+## Docs
+
+- [README](https://github.com/FUYOH666/Services-BGE/blob/main/README.md): what it does, quick start, models, benchmarks, FAQ
+- [API reference](https://github.com/FUYOH666/Services-BGE/blob/main/docs/API.md): request and response fields, errors, Qdrant hybrid-search example
+- [Models, backends and profiles](https://github.com/FUYOH666/Services-BGE/blob/main/docs/MODELS.md): how to switch and add models, 2026 model landscape
+- [Configuration](https://github.com/FUYOH666/Services-BGE/blob/main/docs/CONFIGURATION.md): every environment variable
+- [AGENTS.md](https://github.com/FUYOH666/Services-BGE/blob/main/AGENTS.md): layout, commands, rules for coding agents
+
+## Optional
+
+- [Eval harness](https://github.com/FUYOH666/Services-BGE/blob/main/eval/README.md): dataset format, metrics, comparison table
+- [Operations](https://github.com/FUYOH666/Services-BGE/blob/main/docs/OPERATIONS.md): launchd, logs, safe deploys, troubleshooting
+- [Roadmap and model research](https://github.com/FUYOH666/Services-BGE/blob/main/docs/ROADMAP.md)
+- [Changelog](https://github.com/FUYOH666/Services-BGE/blob/main/CHANGELOG.md)
+- [Русский README](https://github.com/FUYOH666/Services-BGE/blob/main/README.ru.md)

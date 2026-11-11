@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-label="Services-BGE — local embeddings and reranking for hybrid search on Apple Silicon">
+<rect width="1280" height="360" rx="24" fill="#FFFFFF"/>
+<g transform="translate(88 92)"><g transform="scale(1.0)"><rect width="120" height="120" rx="30" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="2"/><circle cx="28" cy="36" r="6" fill="#7C3AED" opacity="1.0"/><rect x="42" y="31" width="54" height="10" rx="5" fill="#7C3AED" opacity="1.0"/><circle cx="28" cy="60" r="6" fill="#7C3AED" opacity="0.55"/><rect x="42" y="55" width="38" height="10" rx="5" fill="#7C3AED" opacity="0.55"/><circle cx="28" cy="84" r="6" fill="#7C3AED" opacity="0.3"/><rect x="42" y="79" width="22" height="10" rx="5" fill="#7C3AED" opacity="0.3"/></g></g>
+<text x="236" y="150" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="64" fill="#1F2328" font-weight="700" letter-spacing="-1.5">Services-BGE</text>
+<text x="238" y="196" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="23" fill="#59636E">Local embeddings + reranking for hybrid search.</text>
+<text x="238" y="232" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="23" fill="#59636E">bge-m3 · Qwen3 · any model · OpenAI-compatible API</text>
+<g transform="translate(868 66)">
+<rect width="352" height="228" rx="18" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="2"/>
+<rect x="20" y="20" width="312" height="38" rx="9" fill="#FFFFFF" stroke="#7C3AED" stroke-width="2"/>
+<text x="34" y="44" font-family="'SF Mono', ui-monospace, Menlo, Consolas, monospace" font-size="15" fill="#1F2328">seamless stainless steel pipe</text>
+<text x="22" y="96" font-family="'SF Mono', ui-monospace, Menlo, Consolas, monospace" font-size="16" fill="#1F2328" font-weight="700" opacity="1.0">7304</text>
+<text x="76" y="96" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#1F2328">Seamless tubes</text>
+<rect x="222" y="85" width="72" height="8" rx="4" fill="#D0D7DE"/>
+<rect x="222" y="85" width="70.6" height="8" rx="4" fill="#7C3AED" opacity="1.0"/>
+<text x="332" y="96" font-family="'SF Mono', ui-monospace, Menlo, Consolas, monospace" font-size="14" fill="#59636E" text-anchor="end">0.98</text>
+<text x="22" y="138" font-family="'SF Mono', ui-monospace, Menlo, Consolas, monospace" font-size="16" fill="#1F2328" font-weight="700" opacity="0.85">7306</text>
+<text x="76" y="138" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#59636E">Welded tubes</text>
+<rect x="222" y="127" width="72" height="8" rx="4" fill="#D0D7DE"/>
+<rect x="222" y="127" width="29.5" height="8" rx="4" fill="#7C3AED" opacity="0.6"/>
+<text x="332" y="138" font-family="'SF Mono', ui-monospace, Menlo, Consolas, monospace" font-size="14" fill="#59636E" text-anchor="end">0.41</text>
+<text x="22" y="180" font-family="'SF Mono', ui-monospace, Menlo, Consolas, monospace" font-size="16" fill="#1F2328" font-weight="700" opacity="0.85">7318</text>
+<text x="76" y="180" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#59636E">Screws, bolts</text>
+<rect x="222" y="169" width="72" height="8" rx="4" fill="#D0D7DE"/>
+<rect x="222" y="169" width="3.0" height="8" rx="4" fill="#7C3AED" opacity="0.35"/>
+<text x="332" y="180" font-family="'SF Mono', ui-monospace, Menlo, Consolas, monospace" font-size="14" fill="#59636E" text-anchor="end">0.01</text>
+<text x="176.0" y="212" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#59636E" text-anchor="middle">dense + sparse → RRF → rerank</text>
+</g></svg>

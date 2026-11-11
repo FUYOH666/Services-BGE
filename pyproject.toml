@@ -1,13 +1,28 @@
 [project]
 name = "services-bge"
-version = "0.1.0"
-description = "BGE-M3 Embedding & BGE-Reranker-v2-m3 microservices for hybrid search in Qdrant"
+version = "0.2.0"
+description = "Local OpenAI-compatible embedding and reranking services (bge-m3, Qwen3, any SentenceTransformer) for hybrid search on Apple Silicon, with model profiles and a retrieval eval harness"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
     { name = "Aleksandr Mordvinov", email = "iamfuyoh@gmail.com" },
 ]
 requires-python = ">=3.12,<3.13"
+keywords = [
+    "embeddings", "reranker", "hybrid-search", "bge-m3", "qwen3", "qdrant",
+    "rag", "retrieval", "sparse-vectors", "apple-silicon", "mps", "openai-compatible",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Indexing",
+]
 dependencies = [
     "FlagEmbedding>=1.3.0",
     "fastapi>=0.115.0",
@@ -20,11 +35,18 @@ dependencies = [
     "transformers>=4.45.0,<5.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/FUYOH666/Services-BGE"
+Documentation = "https://github.com/FUYOH666/Services-BGE/tree/main/docs"
+Changelog = "https://github.com/FUYOH666/Services-BGE/blob/main/CHANGELOG.md"
+Issues = "https://github.com/FUYOH666/Services-BGE/issues"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
     "httpx>=0.27.0",
+    "psutil>=5.9",
 ]
 
 [build-system]
@@ -32,4 +54,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["embedding_service", "reranker_service"]
+packages = ["embedding_service", "reranker_service", "service_common"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
