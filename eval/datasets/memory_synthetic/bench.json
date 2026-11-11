@@ -1,0 +1,9 @@
+{
+  "name": "memory_synthetic",
+  "description": "Fictional two-person studio run by AI agents (canon, decisions, unreviewed inbox notes in English and Russian) plus the public Services-BGE docs. Synthetic: written for testing, not anyone's real data.",
+  "slices": [
+    {"name": "kestrel", "root": "corpus", "include": ["**/*.md"], "canon": ["*.md", "decisions/*.md"]},
+    {"name": "docs", "root": "../../../docs", "include": ["*.md"], "exclude": ["MEMORY-BENCH.md"], "canon": ["*.md"]}
+  ],
+  "read_first": ["kestrel/CANON.md", "kestrel/STATE.md", "kestrel/ORG.md"]
+}

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+Agent memory: trust tiers and a measured bench (opt-in; default behaviour and the HTTP APIs are unchanged):
+
+- trust tiers: with `MCP_CANON_PATHS` set, passages read from those files or folders are stored as `tier: "canon"` and every other write (notes, other files) as `tier: "inbox"`; the tier comes from where the text was read, `remember` has no tier argument; re-reading files after enabling tiers relabels them without re-embedding
+- `search` returns each passage's `tier`, filters with `tiers=[...]`, and with `prefer_tier="canon"` (or `MCP_PREFER_TIER`) multiplies other tiers' scores by `MCP_TIER_PENALTY` (0.5) and fetches canon candidates separately, so a flood of notes cannot crowd the curated passage out; the server instructions tell agents to trust `canon` on conflicts
+- `eval/memory_bench.py`: indexes a corpus through the MCP server's code into a scratch collection, runs a golden question set and reports recall@1/@5 and MRR per language (ru / en / mixed) for grep, dense, sparse, hybrid and hybrid + rerank, the context cost against reading the canon files, and how often planted false notes rank first with and without tiers; public example set `eval/datasets/memory_synthetic`; method and results in `docs/MEMORY-BENCH.md`
+- `eval/private/` is gitignored for private golden sets and their per-question results
+
 ## 0.3.0 — 2026-11-11
 
 Agent memory (new, opt-in; the embedding and rerank APIs are unchanged):

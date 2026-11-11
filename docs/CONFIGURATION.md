@@ -81,6 +81,9 @@ The [agent memory server](AGENT-MEMORY.md) reads the environment and the project
 | `MCP_ALLOWED_PATHS` | `~` | Folders `remember(path=...)` may read, separated by `:` |
 | `MCP_FILE_EXTENSIONS` | `.md,.markdown,.mdx,.txt,.rst` | File types it reads |
 | `MCP_MAX_FILE_BYTES` / `MCP_MAX_FILES` / `MCP_MAX_CHUNKS` | `2000000` / `500` / `5000` | Per file / files per call / passages per call |
+| `MCP_CANON_PATHS` | — | Files or folders (`:`-separated) whose passages are stored as trust tier `canon`; once set, every other write is tier `inbox`. Empty: no tiers. See [AGENT-MEMORY.md](AGENT-MEMORY.md#trust-tiers-curated-canon-vs-unreviewed-notes) |
+| `MCP_PREFER_TIER` | — | Default `search(prefer_tier=...)`, e.g. `canon`. Empty: plain ranking |
+| `MCP_TIER_PENALTY` | `0.5` | With a preferred tier, scores of passages from other tiers are multiplied by this (0–1) |
 
 ## Common
 

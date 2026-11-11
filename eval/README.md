@@ -76,3 +76,45 @@ Full table: [`results/COMPARISON.md`](results/COMPARISON.md). On `demo_ru`:
 
 This is a toy set, so none of this is a verdict. It shows why fusion weights, the
 rerank stage and the model choice must be measured on real data.
+
+## Agent memory bench
+
+`memory_bench.py` asks a different question: when agents share [MCP memory](../docs/AGENT-MEMORY.md),
+does `search` return the passage that answers a question about *your* knowledge base, in
+Russian, English and mixed phrasing, and can an unreviewed note written by a bot push a
+false fact to the top? Method and results: [docs/MEMORY-BENCH.md](../docs/MEMORY-BENCH.md).
+
+```bash
+uv run python eval/memory_bench.py --bench eval/datasets/memory_synthetic
+uv run python eval/memory_bench.py --bench eval/private/my-canon      # your own set, gitignored
+#   --no-poison           skip the poisoning runs
+#   --penalties 0.75,0.5  MCP_TIER_PENALTY values to test with prefer_tier=canon
+#   --keep                keep the scratch collection (mcp_bench-*) for inspection
+```
+
+It indexes the corpus with the MCP server's own code (`mcp_server.memory.Memory`: same
+chunking, payloads, hybrid query and rerank as the `remember` / `search` tools) into a
+scratch collection, deletes it at the end, and writes `<bench>/results/<time>_<name>.md`
+(numbers only) and `.json` (every question). Methods: `grep` (literal term match on the
+same passages, like `rg -i`), `grep_stem` (5-letter stems), `dense`, `sparse`, `hybrid`
+(RRF), `hybrid+rerank` (what `search` does), and `hybrid+rerank, prefer canon`.
+
+```text
+<bench>/bench.json     {"name", "slices": [{"name", "root", "include", "exclude", "canon"}], "read_first": ["<slice>/<file>"]}
+<bench>/golden.jsonl   {"id", "lang": "ru|en|mixed", "query", "expect": [{"file": "<slice>/<path>", "contains": "text or [any of]"}]}
+<bench>/poison.jsonl   {"id", "target": "<golden id>", "agent", "style": "plain|authority", "texts": ["false fact"]}
+```
+
+- `canon` globs (relative to the slice root) mark curated files: they are indexed as
+  trust tier `canon`, everything else as `inbox`. Poison notes are saved with `texts`, so they
+  are always `inbox`, like any agent write.
+- A passage answers a question when it comes from one of the `expect` files and contains
+  one of the `contains` strings (case, spaces and markdown ticks ignored). Questions without
+  any such stored passage are reported and left out.
+- Write questions the way you would ask them, not copied from the text; mix languages.
+- Keep a private set under `eval/private/` (gitignored): its JSON results contain your
+  questions and passage sources.
+
+`datasets/memory_synthetic` is a public example: a fictional studio run by agents (canon,
+decisions, two unreviewed inbox notes, one in Russian), plus this repository's `docs/` as
+a second slice; 24 questions and 8 false notes.

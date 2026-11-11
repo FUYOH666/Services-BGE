@@ -67,6 +67,17 @@ class MCPSettings(BaseSettings):
     # Passages per remember call.
     max_chunks: int = 5000
 
+    # --- Trust tiers -------------------------------------------------------------
+    # Files and folders (":"-separated, "~" allowed) whose passages are stored as
+    # tier "canon" (curated). Once set, every other write (notes, other files) is
+    # stored as tier "inbox" (unreviewed). Empty: no tiers, as before. The writer
+    # cannot choose its tier; it follows from where the text came from.
+    canon_paths: str = ""
+    # Default for search(prefer_tier=...), e.g. "canon". Empty: plain ranking.
+    prefer_tier: str = ""
+    # With a preferred tier, scores of passages from other tiers are multiplied by this.
+    tier_penalty: float = Field(default=0.5, ge=0.0, le=1.0)
+
     model_config = SettingsConfigDict(
         env_prefix="MCP_",
         # The project's .env, wherever the agent starts the process from.
@@ -75,16 +86,18 @@ class MCPSettings(BaseSettings):
     )
 
     def allowed_roots(self) -> list[Path]:
-        roots = []
-        for raw in self.allowed_paths.split(os.pathsep):
-            raw = raw.strip()
-            if raw:
-                roots.append(Path(raw).expanduser().resolve())
-        return roots
+        return _paths(self.allowed_paths)
+
+    def canon_roots(self) -> list[Path]:
+        return _paths(self.canon_paths)
 
     def extensions(self) -> set[str]:
         return {e.strip().lower() if e.strip().startswith(".") else "." + e.strip().lower()
                 for e in self.file_extensions.split(",") if e.strip()}
+
+
+def _paths(value: str) -> list[Path]:
+    return [Path(raw.strip()).expanduser().resolve() for raw in value.split(os.pathsep) if raw.strip()]
 
 
 def is_loopback(host: str) -> bool:

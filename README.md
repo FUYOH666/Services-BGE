@@ -148,6 +148,8 @@ claude mcp add --scope user services-bge -- "$(pwd)/scripts/mcp.sh"   # Claude C
 
 Per-agent setup, the tools, collection rules and safety: **[docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md)**. Connecting is additive (one `services-bge` entry per agent); to disconnect or roll back: [docs/AGENT-ROLLBACK.md](docs/AGENT-ROLLBACK.md).
 
+Opt-in **trust tiers** label curated files `canon` and every agent write `inbox`, so a wrong note from one bot does not outrank the curated fact for the next agent. How well memory finds facts in Russian, English and mixed questions, against grep, and how often a planted false note wins with and without tiers: **[docs/MEMORY-BENCH.md](docs/MEMORY-BENCH.md)**.
+
 **Raw APIs.** Both services listen on `127.0.0.1` and speak protocols agents already know. The official OpenAI SDK works unchanged:
 
 ```python
