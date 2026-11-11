@@ -1,0 +1,24 @@
+{"id": "s01", "lang": "en", "query": "How much does one pilot cost, and how long does it run?", "expect": [{"file": "kestrel/STATE.md", "contains": "EUR 900 to 2,400 for four weeks"}]}
+{"id": "s02", "lang": "ru", "query": "Сколько платных пилотов мы хотим получить до середины декабря?", "expect": [{"file": "kestrel/STATE.md", "contains": "Two paid pilots"}]}
+{"id": "s03", "lang": "mixed", "query": "Кто у нас HQ и curator?", "expect": [{"file": "kestrel/CANON.md", "contains": "HQ and curator: `planner`"}]}
+{"id": "s04", "lang": "en", "query": "Which agent chases prospects with follow-up emails?", "expect": [{"file": "kestrel/ORG.md", "contains": "outreach with a sent-check, follow-ups"}, {"file": "kestrel/CANON.md", "contains": "Outreach and follow-ups: `herald`"}]}
+{"id": "s05", "lang": "ru", "query": "Можно ли отправить письмо от имени Миры, не спросив её?", "expect": [{"file": "kestrel/CANON.md", "contains": "Nothing is sent in Mira's name"}]}
+{"id": "s06", "lang": "en", "query": "Why did we stay with local text recognition instead of the cloud service?", "expect": [{"file": "kestrel/decisions/0002-ocr-engine.md", "contains": "sends client documents off-site"}]}
+{"id": "s07", "lang": "mixed", "query": "На каком branch крутится production invoice checker?", "expect": [{"file": "kestrel/CANON.md", "contains": "`ledgerlens` on branch `stable`"}]}
+{"id": "s08", "lang": "ru", "query": "Сколько дней хранятся ночные резервные копии?", "expect": [{"file": "kestrel/CANON.md", "contains": "kept for 30 days"}]}
+{"id": "s09", "lang": "en", "query": "What is the lowest price we will accept for a pilot?", "expect": [{"file": "kestrel/decisions/0003-pricing-floor.md", "contains": "No pilot below EUR 900"}]}
+{"id": "s10", "lang": "mixed", "query": "Какие лимиты у free trial?", "expect": [{"file": "kestrel/decisions/0003-pricing-floor.md", "contains": "limited to 200 documents and 7 days"}]}
+{"id": "s11", "lang": "en", "query": "How many cloud GPU credits do we still have?", "expect": [{"file": "kestrel/STATE.md", "contains": "140 of 400"}]}
+{"id": "s12", "lang": "ru", "query": "Почему векторный индекс не считается источником истины?", "expect": [{"file": "kestrel/decisions/0001-memory-is-a-git-repo.md", "contains": "never the source of truth"}]}
+{"id": "s13", "lang": "en", "query": "What reply rate do cold emails get from freight forwarders?", "expect": [{"file": "kestrel/inbox/2026-10-30-scout-forwarders.md", "contains": "холодные письма дают ответ в 2 %"}]}
+{"id": "s14", "lang": "ru", "query": "Какое разрешение сканов просить у клиентов?", "expect": [{"file": "kestrel/inbox/2026-10-31-coder-demo-lessons.md", "contains": "ask clients for 300 dpi"}]}
+{"id": "s15", "lang": "mixed", "query": "Сколько DocuFreight берёт за один document?", "expect": [{"file": "kestrel/inbox/2026-10-30-scout-forwarders.md", "contains": "0,09 евро за документ"}]}
+{"id": "s16", "lang": "en", "query": "How much context does a single herald call pull in?", "expect": [{"file": "kestrel/ORG.md", "contains": "about 25k tokens"}]}
+{"id": "d01", "lang": "en", "query": "Which URL do agents use to reach the memory server over HTTP?", "expect": [{"file": "docs/AGENT-MEMORY.md", "contains": "http://127.0.0.1:9003/mcp"}]}
+{"id": "d02", "lang": "ru", "query": "Как удалить из памяти только один источник, не трогая остальное?", "expect": [{"file": "docs/AGENT-MEMORY.md", "contains": "deletes exactly that source"}]}
+{"id": "d03", "lang": "mixed", "query": "Что будет, если переключить embedding model, а collection построена на bge-m3?", "expect": [{"file": "docs/AGENT-MEMORY.md", "contains": "refuses to mix its vectors"}]}
+{"id": "d04", "lang": "en", "query": "How long are the pieces that remember cuts a document into?", "expect": [{"file": "docs/AGENT-MEMORY.md", "contains": "passages of about 500 tokens"}, {"file": "docs/CONFIGURATION.md", "contains": "MCP_CHUNK_TOKENS"}]}
+{"id": "d05", "lang": "ru", "query": "Какая переменная окружения ограничивает папки, которые может читать сервер памяти?", "expect": [{"file": "docs/CONFIGURATION.md", "contains": "MCP_ALLOWED_PATHS"}, {"file": "docs/AGENT-MEMORY.md", "contains": "inside MCP_ALLOWED_PATHS"}]}
+{"id": "d06", "lang": "en", "query": "How do I unplug Cursor from the memory server?", "expect": [{"file": "docs/AGENT-ROLLBACK.md", "contains": "Open ~/.cursor/mcp.json and delete"}]}
+{"id": "d07", "lang": "mixed", "query": "Сколько памяти занимает каждый service в fp32?", "expect": [{"file": "docs/OPERATIONS.md", "contains": "3.7 GB per service in fp32"}]}
+{"id": "d08", "lang": "ru", "query": "Что делать, если агент пишет uv: command not found?", "expect": [{"file": "docs/AGENT-MEMORY.md", "contains": "Use the absolute path to scripts/mcp.sh"}]}

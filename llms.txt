@@ -7,6 +7,7 @@
 - [README](https://github.com/FUYOH666/Services-BGE/blob/main/README.md): what it does, quick start, models, benchmarks, FAQ
 - [API reference](https://github.com/FUYOH666/Services-BGE/blob/main/docs/API.md): request and response fields, errors, Qdrant hybrid-search example
 - [Agent memory (MCP server)](https://github.com/FUYOH666/Services-BGE/blob/main/docs/AGENT-MEMORY.md): connect Claude Code, Cursor, OpenClaw, Hermes or any MCP client; tools, collections, safety
+- [Agent memory bench](https://github.com/FUYOH666/Services-BGE/blob/main/docs/MEMORY-BENCH.md): retrieval per language vs grep, context cost, poisoning with and without trust tiers
 - [Agent memory rollback](https://github.com/FUYOH666/Services-BGE/blob/main/docs/AGENT-ROLLBACK.md): disconnect an agent, restore config backups, delete stored memory
 - [Models, backends and profiles](https://github.com/FUYOH666/Services-BGE/blob/main/docs/MODELS.md): how to switch and add models, 2026 model landscape
 - [Configuration](https://github.com/FUYOH666/Services-BGE/blob/main/docs/CONFIGURATION.md): every environment variable

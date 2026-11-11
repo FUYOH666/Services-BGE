@@ -4,6 +4,11 @@ Each memory collection is a Qdrant collection named `<prefix><name>` with a
 named dense vector `dense` (cosine) and a sparse vector `sparse` (bge-m3
 lexical weights). Point ids are derived from the source and passage number,
 so saving the same thing twice updates it instead of duplicating it.
+
+Trust tiers (opt-in, MCP_CANON_PATHS): passages read from curated files are
+stored as tier "canon", every other write as tier "inbox". The tier follows
+from where the text came from; a caller cannot choose it. search can prefer a
+tier, so an unreviewed note does not outrank the curated fact it contradicts.
 """
 from __future__ import annotations
 
@@ -32,6 +37,8 @@ logger = logging.getLogger(__name__)
 
 DENSE = "dense"
 SPARSE = "sparse"
+CANON = "canon"
+INBOX = "inbox"
 SCHEMA_VERSION = 1
 CREATED_BY = "services-bge-mcp"
 _ID_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "https://github.com/FUYOH666/Services-BGE/mcp_server")
@@ -54,6 +61,8 @@ class Passage(BaseModel):
     section: str | None = None
     tags: list[str] | None = None
     created_at: str | None = None
+    # "canon" (curated file) or "inbox" (unreviewed write) when trust tiers are on.
+    tier: str | None = None
 
 
 class SearchResult(BaseModel):
@@ -62,6 +71,8 @@ class SearchResult(BaseModel):
     reranked: bool
     results: list[Passage]
     note: str | None = None
+    # Set when passages from this tier were ranked first (search prefer_tier / MCP_PREFER_TIER).
+    prefer_tier: str | None = None
 
 
 class RememberResult(BaseModel):
@@ -135,6 +146,7 @@ class _Document:
     markdown: bool
     # Saved texts are keyed by content too, so different notes can share a source.
     content_key: str = ""
+    tier: str | None = None
 
 
 @dataclass
@@ -143,6 +155,7 @@ class _Planned:
     source: str
     chunk: Chunk
     hash: str
+    tier: str | None = None
 
 
 def _sha(text: str) -> str:
@@ -289,17 +302,33 @@ class Memory:
             except UnexpectedResponse as exc:
                 if exc.status_code != 409:  # created concurrently by another agent
                     raise
-            for field in ("source", "tags"):
+            for field in ("source", "tags", "tier"):
                 await self.qdrant.create_payload_index(qname, field, models.PayloadSchemaType.KEYWORD)
 
     @staticmethod
-    def _filter(source: str | None, tags: list[str] | None) -> models.Filter | None:
+    def _filter(source: str | None, tags: list[str] | None, tiers: list[str] | None = None) -> models.Filter | None:
         must: list = []
         if source:
             must.append(models.FieldCondition(key="source", match=models.MatchValue(value=source)))
         if tags:
             must.append(models.FieldCondition(key="tags", match=models.MatchAny(any=tags)))
+        if tiers:
+            must.append(models.FieldCondition(key="tier", match=models.MatchAny(any=tiers)))
         return models.Filter(must=must) if must else None
+
+    # --- trust tiers -------------------------------------------------------------------
+
+    def _tier_for(self, file: Path | None) -> str | None:
+        """canon for files inside MCP_CANON_PATHS, inbox for everything else; None when tiers are off."""
+        roots = self.settings.canon_roots()
+        if not roots:
+            return None
+        if file is not None and any(file == root or file.is_relative_to(root) for root in roots):
+            return CANON
+        return INBOX
+
+    def _weight(self, point: models.ScoredPoint, prefer: str) -> float:
+        return 1.0 if (point.payload or {}).get("tier") == prefer else self.settings.tier_penalty
 
     # --- remember --------------------------------------------------------------------
 
@@ -361,7 +390,7 @@ class Memory:
             for chunk in chunks:
                 point_id = str(uuid.uuid5(_ID_NAMESPACE, f"{doc.source}\x00{doc.content_key}\x00{chunk.index}"))
                 content_hash = _sha(f"{chunk.contextual_text()}\x00{tag_key}")[:16]
-                planned.append(_Planned(point_id, doc.source, chunk, content_hash))
+                planned.append(_Planned(point_id, doc.source, chunk, content_hash, doc.tier))
             if len(planned) > self.settings.max_chunks:
                 raise ServiceError(
                     f"That is more than {self.settings.max_chunks} passages in one call (MCP_MAX_CHUNKS); "
@@ -369,16 +398,18 @@ class Memory:
                 )
         return planned
 
-    async def _existing_hashes(self, qname: str, ids: list[str]) -> dict[str, str]:
-        hashes: dict[str, str] = {}
+    async def _existing(self, qname: str, ids: list[str]) -> dict[str, tuple[str, str | None]]:
+        """Stored (hash, tier) per point id."""
+        found: dict[str, tuple[str, str | None]] = {}
         async with self._qdrant_errors():
             for start in range(0, len(ids), _RETRIEVE_BATCH):
                 records = await self.qdrant.retrieve(
-                    qname, ids=ids[start:start + _RETRIEVE_BATCH], with_payload=["hash"], with_vectors=False
+                    qname, ids=ids[start:start + _RETRIEVE_BATCH], with_payload=["hash", "tier"], with_vectors=False
                 )
                 for record in records:
-                    hashes[str(record.id)] = (record.payload or {}).get("hash", "")
-        return hashes
+                    payload = record.payload or {}
+                    found[str(record.id)] = (payload.get("hash", ""), payload.get("tier"))
+        return found
 
     async def remember(
         self,
@@ -410,25 +441,36 @@ class Memory:
                     skipped.append(f"{_display_path(file)}: larger than MCP_MAX_FILE_BYTES or not text")
                     continue
                 doc_source = source or _display_path(file)
-                documents.append(_Document(doc_source, text, markdown=file.suffix.lower() in _MARKDOWN))
+                documents.append(_Document(
+                    doc_source, text, markdown=file.suffix.lower() in _MARKDOWN, tier=self._tier_for(file),
+                ))
                 # A file is one document: reading it again replaces its old passages.
                 replace_sources.add(doc_source)
         else:
             items = [t for t in (texts or []) if t and t.strip()]
             if not items:
                 raise ServiceError("`texts` is empty.")
+            note_tier = self._tier_for(None)
             for text in items:
                 digest = _sha(text)
                 doc_source = source or f"note:{digest[:12]}"
-                documents.append(_Document(doc_source, text, markdown=True, content_key=digest[:16]))
+                documents.append(_Document(doc_source, text, markdown=True, content_key=digest[:16], tier=note_tier))
                 if replace and source:
                     replace_sources.add(doc_source)
 
         planned = self._plan(documents, tags)
         sources = list(dict.fromkeys(p.source for p in planned)) or list(dict.fromkeys(d.source for d in documents))
         info = await self._collection(qname)
-        existing = await self._existing_hashes(qname, [p.id for p in planned]) if info else {}
-        todo = [p for p in planned if existing.get(p.id) != p.hash]
+        existing = await self._existing(qname, [p.id for p in planned]) if info else {}
+        todo = [p for p in planned if p.id not in existing or existing[p.id][0] != p.hash]
+        # Unchanged text whose tier changed (MCP_CANON_PATHS edited): update the label, keep the vectors.
+        retier: dict[str, list[str]] = {}
+        for p in planned:
+            if p.tier and p.id in existing and existing[p.id][0] == p.hash and existing[p.id][1] != p.tier:
+                retier.setdefault(p.tier, []).append(p.id)
+        for tier, ids in retier.items():
+            async with self._qdrant_errors():
+                await self.qdrant.set_payload(qname, payload={"tier": tier}, points=ids, wait=True)
         now = _now()
 
         batch_size = self.settings.embed_batch_size
@@ -457,6 +499,8 @@ class Memory:
                     payload["section"] = item.chunk.section
                 if tags:
                     payload["tags"] = tags
+                if item.tier:
+                    payload["tier"] = item.tier
                 points.append(models.PointStruct(id=item.id, vector=vector, payload=payload))
             async with self._qdrant_errors():
                 await self.qdrant.upsert(qname, points=points, wait=True)
@@ -509,11 +553,14 @@ class Memory:
         tags: list[str] | None = None,
         source: str | None = None,
         min_score: float | None = None,
+        tiers: list[str] | None = None,
+        prefer_tier: str | None = None,
     ) -> SearchResult:
         qname = self.qdrant_name(collection)
         name = self.public_name(qname)
         if not query.strip():
             raise ServiceError("`query` is empty.")
+        prefer = (prefer_tier if prefer_tier is not None else self.settings.prefer_tier).strip() or None
         info = await self._collection(qname)
         if info is None or not info.points_count:
             return SearchResult(
@@ -526,37 +573,29 @@ class Memory:
         sparse = embedded.items[0].sparse
         self._check_compatible(qname, info, embedded.model, len(dense))
 
-        flt = self._filter(source, _clean_tags(tags))
+        flt = self._filter(source, _clean_tags(tags), _clean_tags(tiers))
         pool = max(top_k, self.settings.rerank_candidates) if rerank else top_k
         prefetch_limit = max(self.settings.prefetch_limit, pool)
-        async with self._qdrant_errors():
-            if sparse and sparse.get("indices"):
-                response = await self.qdrant.query_points(
-                    qname,
-                    prefetch=[
-                        models.Prefetch(query=dense, using=DENSE, limit=prefetch_limit, filter=flt),
-                        models.Prefetch(query=models.SparseVector(**sparse), using=SPARSE, limit=prefetch_limit, filter=flt),
-                    ],
-                    query=models.FusionQuery(fusion=models.Fusion.RRF),
-                    query_filter=flt,
-                    limit=pool,
-                    with_payload=True,
-                )
-            else:
-                response = await self.qdrant.query_points(
-                    qname, query=dense, using=DENSE, query_filter=flt, limit=pool, with_payload=True
-                )
-        points = response.points
+        points = await self._query(qname, dense, sparse, flt, pool, prefetch_limit)
+        if prefer:
+            candidates = await self._preferred_candidates(qname, dense, sparse, flt, pool, prefetch_limit, points, prefer)
+        else:
+            candidates = [(p, p.score) for p in points]
 
         note = None
         reranked = False
-        ordered: list[tuple[models.ScoredPoint, float]] = [(p, p.score) for p in points[:top_k]]
-        if rerank and points:
+        ordered: list[tuple[models.ScoredPoint, float]] = candidates[:top_k]
+        if rerank and candidates:
+            documents = [_model_text(p.payload or {}) for p, _ in candidates]
             try:
-                _, ranked = await self.reranker.rerank(
-                    query, [_model_text(p.payload or {}) for p in points], top_n=min(top_k, len(points))
-                )
-                ordered = [(points[i], score) for i, score in ranked]
+                if prefer:
+                    # Score every candidate, then weight by tier, so the order is decided on one scale.
+                    _, ranked = await self.reranker.rerank(query, documents)
+                    weighted = [(candidates[i][0], score * self._weight(candidates[i][0], prefer)) for i, score in ranked]
+                    ordered = sorted(weighted, key=lambda item: item[1], reverse=True)[:top_k]
+                else:
+                    _, ranked = await self.reranker.rerank(query, documents, top_n=min(top_k, len(candidates)))
+                    ordered = [(candidates[i][0], score) for i, score in ranked]
                 reranked = True
             except ServiceError as exc:
                 note = f"Reranker unavailable, results are in hybrid-search order. {exc}"
@@ -574,10 +613,68 @@ class Memory:
                 section=payload.get("section"),
                 tags=payload.get("tags"),
                 created_at=payload.get("created_at"),
+                tier=payload.get("tier"),
             ))
         if not results and note is None:
             note = "No passage matched." if min_score is None else f"No passage scored at least {min_score}."
-        return SearchResult(collection=name, query=query, reranked=reranked, results=results, note=note)
+        return SearchResult(
+            collection=name, query=query, reranked=reranked, results=results, note=note, prefer_tier=prefer,
+        )
+
+    async def _query(
+        self,
+        qname: str,
+        dense: list[float],
+        sparse: dict | None,
+        flt: models.Filter | None,
+        limit: int,
+        prefetch_limit: int,
+    ) -> list[models.ScoredPoint]:
+        """Hybrid (dense + sparse, RRF) candidates, or dense only for models without sparse vectors."""
+        async with self._qdrant_errors():
+            if sparse and sparse.get("indices"):
+                response = await self.qdrant.query_points(
+                    qname,
+                    prefetch=[
+                        models.Prefetch(query=dense, using=DENSE, limit=prefetch_limit, filter=flt),
+                        models.Prefetch(query=models.SparseVector(**sparse), using=SPARSE, limit=prefetch_limit, filter=flt),
+                    ],
+                    query=models.FusionQuery(fusion=models.Fusion.RRF),
+                    query_filter=flt,
+                    limit=limit,
+                    with_payload=True,
+                )
+            else:
+                response = await self.qdrant.query_points(
+                    qname, query=dense, using=DENSE, query_filter=flt, limit=limit, with_payload=True
+                )
+        return response.points
+
+    async def _preferred_candidates(
+        self,
+        qname: str,
+        dense: list[float],
+        sparse: dict | None,
+        flt: models.Filter | None,
+        limit: int,
+        prefetch_limit: int,
+        points: list[models.ScoredPoint],
+        prefer: str,
+    ) -> list[tuple[models.ScoredPoint, float]]:
+        """The usual candidates plus the best ones of the preferred tier, in tier-weighted fusion order.
+
+        The second query keeps preferred passages in the pool even when many other
+        passages (a flood of near-identical unreviewed notes, say) crowd them out of it.
+        Preferred passages keep the fusion score they get among their own tier; the
+        others are multiplied by MCP_TIER_PENALTY.
+        """
+        must = list(flt.must) if flt is not None and isinstance(flt.must, list) else []
+        must.append(models.FieldCondition(key="tier", match=models.MatchValue(value=prefer)))
+        preferred = await self._query(qname, dense, sparse, models.Filter(must=must), limit, prefetch_limit)
+        scored: dict = {p.id: (p, p.score * self._weight(p, prefer)) for p in points}
+        for p in preferred:
+            scored[p.id] = (p, p.score)
+        return sorted(scored.values(), key=lambda item: item[1], reverse=True)
 
     # --- browse and delete -------------------------------------------------------------
 

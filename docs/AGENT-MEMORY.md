@@ -9,6 +9,7 @@ Unlike the official Qdrant MCP server, which embeds with its own small FastEmbed
 - [Connect an agent](#connect-an-agent): [Claude Code](#claude-code) · [Cursor](#cursor) · [OpenClaw](#openclaw) · [Hermes](#hermes) · [Any agent over HTTP](#any-agent-over-http)
 - [Tools](#tools)
 - [Collections, sources and updates](#collections-sources-and-updates)
+- [Trust tiers: curated canon vs unreviewed notes](#trust-tiers-curated-canon-vs-unreviewed-notes)
 - [Safety](#safety)
 - [Troubleshooting](#troubleshooting)
 - [Disconnect and roll back](AGENT-ROLLBACK.md)
@@ -135,7 +136,7 @@ Over stdio, any MCP client can run `scripts/mcp.sh`, or `uv run --directory /abs
 | Tool | What it does | Changes data |
 |---|---|---|
 | `remember(texts \| path, collection?, source?, tags?, replace?)` | Saves notes (`texts`, one string each) or a `.md`/`.markdown`/`.mdx`/`.txt`/`.rst` file or folder (`path`) | adds / updates |
-| `search(query, collection?, top_k=5, rerank=true, tags?, source?, min_score?)` | Hybrid search + rerank; returns `text`, `source`, `score`, `section`, `tags`, `created_at` | no |
+| `search(query, collection?, top_k=5, rerank=true, tags?, source?, min_score?, tiers?, prefer_tier?)` | Hybrid search + rerank; returns `text`, `source`, `score`, `section`, `tags`, `created_at`, `tier` | no |
 | `list_collections()` | Collections with passage counts and the embedding model that built them | no |
 | `list_sources(collection?, limit=100)` | Sources in a collection with passage counts | no |
 | `forget(collection, source? \| everything=true)` | Deletes one source, or the whole collection | **deletes** |
@@ -160,11 +161,29 @@ With `rerank=true` the score is the reranker's 0–1 relevance; below about 0.1 
 
 ## Collections, sources and updates
 
-- **Collection** = namespace. The default is `memory`; agents that use the same name share memory. In Qdrant each one is stored as `mcp_<name>` with a named dense vector `dense` (1024, cosine), a sparse vector `sparse` (bge-m3 lexical weights) and payload `text`, `source`, `chunk`, `section`, `tags`, `created_at`, `hash`. The embedding model is recorded in the collection metadata.
+- **Collection** = namespace. The default is `memory`; agents that use the same name share memory. In Qdrant each one is stored as `mcp_<name>` with a named dense vector `dense` (1024, cosine), a sparse vector `sparse` (bge-m3 lexical weights) and payload `text`, `source`, `chunk`, `section`, `tags`, `created_at`, `hash` (and `tier` when [trust tiers](#trust-tiers-curated-canon-vs-unreviewed-notes) are on). The embedding model is recorded in the collection metadata.
 - **Source** = where a passage came from: the file path (`~/notes/plan.md`), or what you pass as `source` (`meeting-2026-11-11`, a URL). Notes saved without a source get `note:<id>`. `forget(collection, source=...)` deletes exactly that source.
 - **Files** are documents: remembering a file again re-embeds only the passages that changed and removes passages the file no longer has. Files deleted from disk stay in memory until you `forget` their source.
 - **Notes** accumulate: the same text saved twice is stored once, different texts under one `source` are all kept. `replace=true` makes the source contain exactly the new texts.
 - **Point ids** are UUIDv5 of source + passage number (+ content hash for notes), so repeated calls are idempotent.
+
+## Trust tiers: curated canon vs unreviewed notes
+
+When several agents share one collection, any of them can write something wrong, by mistake or because a prompt injection told it to, and the next agent will find it. Trust tiers keep curated facts on top. They are off by default; nothing changes until you set `MCP_CANON_PATHS`.
+
+```bash
+# .env — files that went through review (here: a local clone of a canon repository)
+MCP_CANON_PATHS=~/memory/CANON.md:~/memory/STATE.md:~/memory/decisions
+MCP_PREFER_TIER=canon        # optional: every search ranks canon first
+```
+
+- **The tier follows where the text came from; the writer cannot choose it.** Passages read from files inside `MCP_CANON_PATHS` are stored as `tier: "canon"`. Everything else — every note saved with `texts`, every other file — is `tier: "inbox"` (unreviewed). `remember` has no tier argument, and a note that *claims* to be approved is still an inbox note.
+- **`search` shows the tier** of each passage next to its `source`, and the server tells agents to trust `canon` when the two disagree.
+- **`prefer_tier="canon"`** (or `MCP_PREFER_TIER=canon` for every call) ranks canon first when relevance is close: scores of passages from other tiers are multiplied by `MCP_TIER_PENALTY` (0.5). Search also fetches the best canon candidates separately, so a flood of near-identical notes cannot push the curated passage out of the candidate pool. Inbox passages are still returned; a clearly better inbox answer still wins.
+- **`tiers=["canon"]`** returns curated passages only (quarantine). Safest, but facts that exist only as notes are then invisible.
+- Turning tiers on later only relabels: remembering the canon files again sets their tier without re-embedding them.
+
+How much this helps, measured: [MEMORY-BENCH.md](MEMORY-BENCH.md). The canon files themselves must be protected elsewhere (review, branch protection); an agent that can edit them on disk can still change canon.
 
 ## Safety
 

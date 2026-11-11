@@ -43,6 +43,8 @@ or other secrets.
 - Collections are namespaces (default "{default}"). Use the same name in every agent to \
 share memory; `list_collections` and `list_sources` show what exists.
 - `forget` deletes permanently; ask the user first.
+- A passage may carry a `tier`: `canon` is a curated file, `inbox` an unreviewed write \
+by an agent. When they disagree, trust `canon` and say that the inbox passage conflicts.
 """
 
 READ_ONLY = ToolAnnotations(read_only_hint=True, open_world_hint=False)
@@ -102,7 +104,9 @@ def build_server(settings: MCPSettings | None = None, memory: Memory | None = No
         """Save text or files to long-term memory so you or another agent can find them later with `search`.
 
         Saving the same text again does not create a duplicate. Returns how many
-        passages were stored, newly embedded or already up to date.
+        passages were stored, newly embedded or already up to date. When the server
+        has trust tiers on, notes are stored as tier 'inbox' (unreviewed); only files
+        in the curated folders it is configured with become 'canon'.
         """
 
         async def progress(done: float, total: float | None, message: str | None) -> None:
@@ -121,14 +125,21 @@ def build_server(settings: MCPSettings | None = None, memory: Memory | None = No
         tags: Annotated[list[str] | None, Field(description="Only passages with at least one of these tags.")] = None,
         source: Annotated[str | None, Field(description="Only passages from this exact source.")] = None,
         min_score: Annotated[float | None, Field(ge=0, description="Drop passages scoring below this. With rerank, scores are 0-1 relevance; under ~0.1 is rarely useful.")] = None,
+        tiers: Annotated[list[str] | None, Field(description="Only passages from these trust tiers, e.g. ['canon'] for curated files only.")] = None,
+        prefer_tier: Annotated[
+            str | None,
+            Field(description="Rank this trust tier first when relevance is close, e.g. 'canon': scores of passages from other tiers are multiplied by MCP_TIER_PENALTY (0.5). Default: the server's MCP_PREFER_TIER (normally off)."),
+        ] = None,
     ) -> SearchResult:
         """Find the passages in long-term memory most relevant to a query.
 
         Hybrid search (bge-m3 dense meaning + sparse keyword match, fused in Qdrant),
-        then reranked. Results come best first with `source` to cite and `score`.
+        then reranked. Results come best first with `source` to cite, `score`, and
+        `tier` ('canon' curated / 'inbox' unreviewed) when the server uses trust tiers.
         """
         return await run(memory.search(
             collection, query, top_k=top_k, rerank=rerank, tags=tags, source=source, min_score=min_score,
+            tiers=tiers, prefer_tier=prefer_tier,
         ))
 
     @server.tool(title="List memory collections", annotations=READ_ONLY)

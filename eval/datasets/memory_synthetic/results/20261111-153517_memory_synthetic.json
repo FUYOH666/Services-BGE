@@ -1,0 +1,2464 @@
+{
+  "name": "memory_synthetic",
+  "created_at": "2026-11-11T08:35:17+00:00",
+  "bench": "eval/datasets/memory_synthetic",
+  "collection": "bench-memory_synthetic-20261111-153517",
+  "settings": {
+    "embedding_url": "http://127.0.0.1:9001",
+    "reranker_url": "http://127.0.0.1:9002",
+    "qdrant_url": "http://127.0.0.1:6333",
+    "chunk_tokens": 500,
+    "chunk_overlap_tokens": 80,
+    "prefetch_limit": 50,
+    "rerank_candidates": 20,
+    "top_k": 10
+  },
+  "index": {
+    "seconds": 6.14761879100115,
+    "files": 15,
+    "passages": 96,
+    "passages_by_tier": {
+      "canon": 92,
+      "inbox": 4
+    }
+  },
+  "golden": {
+    "questions": 24,
+    "left_out": [],
+    "by_lang": {
+      "ru": 8,
+      "en": 10,
+      "mixed": 6
+    },
+    "by_answer_tier": {
+      "canon": 21,
+      "inbox": 3
+    }
+  },
+  "clean": {
+    "grep": {
+      "all": {
+        "n": 24,
+        "recall@1": 0.375,
+        "recall@5": 0.6666666666666666,
+        "mrr@10": 0.4861111111111111
+      },
+      "lang:en": {
+        "n": 10,
+        "recall@1": 0.3,
+        "recall@5": 0.9,
+        "mrr@10": 0.5166666666666667
+      },
+      "slice:kestrel": {
+        "n": 16,
+        "recall@1": 0.4375,
+        "recall@5": 0.625,
+        "mrr@10": 0.5052083333333334
+      },
+      "answer:canon": {
+        "n": 21,
+        "recall@1": 0.38095238095238093,
+        "recall@5": 0.7142857142857143,
+        "mrr@10": 0.5079365079365079
+      },
+      "lang:ru": {
+        "n": 8,
+        "recall@1": 0.125,
+        "recall@5": 0.125,
+        "mrr@10": 0.125
+      },
+      "lang:mixed": {
+        "n": 6,
+        "recall@1": 0.8333333333333334,
+        "recall@5": 1.0,
+        "mrr@10": 0.9166666666666666
+      },
+      "answer:inbox": {
+        "n": 3,
+        "recall@1": 0.3333333333333333,
+        "recall@5": 0.3333333333333333,
+        "mrr@10": 0.3333333333333333
+      },
+      "slice:docs": {
+        "n": 8,
+        "recall@1": 0.25,
+        "recall@5": 0.75,
+        "mrr@10": 0.4479166666666667
+      }
+    },
+    "grep_stem": {
+      "all": {
+        "n": 24,
+        "recall@1": 0.375,
+        "recall@5": 0.625,
+        "mrr@10": 0.4774305555555556
+      },
+      "lang:en": {
+        "n": 10,
+        "recall@1": 0.4,
+        "recall@5": 0.9,
+        "mrr@10": 0.5833333333333333
+      },
+      "slice:kestrel": {
+        "n": 16,
+        "recall@1": 0.375,
+        "recall@5": 0.5625,
+        "mrr@10": 0.4505208333333333
+      },
+      "answer:canon": {
+        "n": 21,
+        "recall@1": 0.38095238095238093,
+        "recall@5": 0.6666666666666666,
+        "mrr@10": 0.498015873015873
+      },
+      "lang:ru": {
+        "n": 8,
+        "recall@1": 0.125,
+        "recall@5": 0.125,
+        "mrr@10": 0.125
+      },
+      "lang:mixed": {
+        "n": 6,
+        "recall@1": 0.6666666666666666,
+        "recall@5": 0.8333333333333334,
+        "mrr@10": 0.7708333333333334
+      },
+      "answer:inbox": {
+        "n": 3,
+        "recall@1": 0.3333333333333333,
+        "recall@5": 0.3333333333333333,
+        "mrr@10": 0.3333333333333333
+      },
+      "slice:docs": {
+        "n": 8,
+        "recall@1": 0.375,
+        "recall@5": 0.75,
+        "mrr@10": 0.53125
+      }
+    },
+    "dense": {
+      "all": {
+        "n": 24,
+        "recall@1": 0.7916666666666666,
+        "recall@5": 0.9583333333333334,
+        "mrr@10": 0.86875
+      },
+      "lang:en": {
+        "n": 10,
+        "recall@1": 0.7,
+        "recall@5": 0.9,
+        "mrr@10": 0.8099999999999999
+      },
+      "slice:kestrel": {
+        "n": 16,
+        "recall@1": 0.8125,
+        "recall@5": 0.9375,
+        "mrr@10": 0.88125
+      },
+      "answer:canon": {
+        "n": 21,
+        "recall@1": 0.7619047619047619,
+        "recall@5": 0.9523809523809523,
+        "mrr@10": 0.8500000000000001
+      },
+      "lang:ru": {
+        "n": 8,
+        "recall@1": 0.875,
+        "recall@5": 1.0,
+        "mrr@10": 0.90625
+      },
+      "lang:mixed": {
+        "n": 6,
+        "recall@1": 0.8333333333333334,
+        "recall@5": 1.0,
+        "mrr@10": 0.9166666666666666
+      },
+      "answer:inbox": {
+        "n": 3,
+        "recall@1": 1.0,
+        "recall@5": 1.0,
+        "mrr@10": 1.0
+      },
+      "slice:docs": {
+        "n": 8,
+        "recall@1": 0.75,
+        "recall@5": 1.0,
+        "mrr@10": 0.84375
+      }
+    },
+    "sparse": {
+      "all": {
+        "n": 24,
+        "recall@1": 0.5416666666666666,
+        "recall@5": 0.625,
+        "mrr@10": 0.5659722222222222
+      },
+      "lang:en": {
+        "n": 10,
+        "recall@1": 0.6,
+        "recall@5": 0.8,
+        "mrr@10": 0.6583333333333333
+      },
+      "slice:kestrel": {
+        "n": 16,
+        "recall@1": 0.5625,
+        "recall@5": 0.625,
+        "mrr@10": 0.5833333333333334
+      },
+      "answer:canon": {
+        "n": 21,
+        "recall@1": 0.5714285714285714,
+        "recall@5": 0.6190476190476191,
+        "mrr@10": 0.5833333333333334
+      },
+      "lang:ru": {
+        "n": 8,
+        "recall@1": 0.125,
+        "recall@5": 0.125,
+        "mrr@10": 0.125
+      },
+      "lang:mixed": {
+        "n": 6,
+        "recall@1": 1.0,
+        "recall@5": 1.0,
+        "mrr@10": 1.0
+      },
+      "answer:inbox": {
+        "n": 3,
+        "recall@1": 0.3333333333333333,
+        "recall@5": 0.6666666666666666,
+        "mrr@10": 0.4444444444444444
+      },
+      "slice:docs": {
+        "n": 8,
+        "recall@1": 0.5,
+        "recall@5": 0.625,
+        "mrr@10": 0.53125
+      }
+    },
+    "hybrid": {
+      "all": {
+        "n": 24,
+        "recall@1": 0.5833333333333334,
+        "recall@5": 0.9166666666666666,
+        "mrr@10": 0.75
+      },
+      "lang:en": {
+        "n": 10,
+        "recall@1": 0.7,
+        "recall@5": 0.9,
+        "mrr@10": 0.7833333333333333
+      },
+      "slice:kestrel": {
+        "n": 16,
+        "recall@1": 0.5625,
+        "recall@5": 0.9375,
+        "mrr@10": 0.75
+      },
+      "answer:canon": {
+        "n": 21,
+        "recall@1": 0.5714285714285714,
+        "recall@5": 0.9047619047619048,
+        "mrr@10": 0.7380952380952381
+      },
+      "lang:ru": {
+        "n": 8,
+        "recall@1": 0.125,
+        "recall@5": 0.875,
+        "mrr@10": 0.5208333333333334
+      },
+      "lang:mixed": {
+        "n": 6,
+        "recall@1": 1.0,
+        "recall@5": 1.0,
+        "mrr@10": 1.0
+      },
+      "answer:inbox": {
+        "n": 3,
+        "recall@1": 0.6666666666666666,
+        "recall@5": 1.0,
+        "mrr@10": 0.8333333333333334
+      },
+      "slice:docs": {
+        "n": 8,
+        "recall@1": 0.625,
+        "recall@5": 0.875,
+        "mrr@10": 0.75
+      }
+    },
+    "hybrid+rerank": {
+      "all": {
+        "n": 24,
+        "recall@1": 0.9166666666666666,
+        "recall@5": 0.9583333333333334,
+        "mrr@10": 0.9305555555555555
+      },
+      "lang:en": {
+        "n": 10,
+        "recall@1": 0.9,
+        "recall@5": 0.9,
+        "mrr@10": 0.9
+      },
+      "slice:kestrel": {
+        "n": 16,
+        "recall@1": 0.9375,
+        "recall@5": 0.9375,
+        "mrr@10": 0.9375
+      },
+      "answer:canon": {
+        "n": 21,
+        "recall@1": 0.9047619047619048,
+        "recall@5": 0.9523809523809523,
+        "mrr@10": 0.9206349206349206
+      },
+      "lang:ru": {
+        "n": 8,
+        "recall@1": 0.875,
+        "recall@5": 1.0,
+        "mrr@10": 0.9166666666666666
+      },
+      "lang:mixed": {
+        "n": 6,
+        "recall@1": 1.0,
+        "recall@5": 1.0,
+        "mrr@10": 1.0
+      },
+      "answer:inbox": {
+        "n": 3,
+        "recall@1": 1.0,
+        "recall@5": 1.0,
+        "mrr@10": 1.0
+      },
+      "slice:docs": {
+        "n": 8,
+        "recall@1": 0.875,
+        "recall@5": 1.0,
+        "mrr@10": 0.9166666666666666
+      }
+    },
+    "hybrid+rerank, prefer canon": {
+      "all": {
+        "n": 24,
+        "recall@1": 0.9166666666666666,
+        "recall@5": 1.0,
+        "mrr@10": 0.9513888888888888
+      },
+      "lang:en": {
+        "n": 10,
+        "recall@1": 0.9,
+        "recall@5": 1.0,
+        "mrr@10": 0.95
+      },
+      "slice:kestrel": {
+        "n": 16,
+        "recall@1": 0.9375,
+        "recall@5": 1.0,
+        "mrr@10": 0.96875
+      },
+      "answer:canon": {
+        "n": 21,
+        "recall@1": 0.9047619047619048,
+        "recall@5": 1.0,
+        "mrr@10": 0.9444444444444444
+      },
+      "lang:ru": {
+        "n": 8,
+        "recall@1": 0.875,
+        "recall@5": 1.0,
+        "mrr@10": 0.9166666666666666
+      },
+      "lang:mixed": {
+        "n": 6,
+        "recall@1": 1.0,
+        "recall@5": 1.0,
+        "mrr@10": 1.0
+      },
+      "answer:inbox": {
+        "n": 3,
+        "recall@1": 1.0,
+        "recall@5": 1.0,
+        "mrr@10": 1.0
+      },
+      "slice:docs": {
+        "n": 8,
+        "recall@1": 0.875,
+        "recall@5": 1.0,
+        "mrr@10": 0.9166666666666666
+      }
+    }
+  },
+  "latency_ms_p50": {
+    "grep": 0.4,
+    "grep_stem": 0.4,
+    "dense": 107.4,
+    "sparse": 104.0,
+    "hybrid": 52.5,
+    "hybrid+rerank": 1695.8,
+    "hybrid+rerank, prefer canon": 1803.1
+  },
+  "context": {
+    "read_first_files": 3,
+    "read_first_chars": 2383,
+    "read_first_tokens_est": 866,
+    "read_first_covers": 0.375,
+    "corpus_files": 15,
+    "corpus_chars": 57574,
+    "corpus_tokens_est": 23000,
+    "top5_chars_mean": 3881,
+    "top5_tokens_est": 1542,
+    "top5_recall@5": 0.9583333333333334,
+    "ratio": 0.6
+  },
+  "poison": {
+    "notes": 8,
+    "targets": 7,
+    "targets_by_answer_tier": {
+      "canon": 6,
+      "inbox": 1
+    },
+    "notes_by_style": {
+      "authority": 2,
+      "plain": 6
+    },
+    "styles": [
+      "authority",
+      "plain"
+    ],
+    "configs": {
+      "hybrid+rerank (no tiers)": {
+        "false_first": 1.0,
+        "false_in_top5": 1.0,
+        "true_first": 0.0,
+        "false_first_by_answer_tier": {
+          "canon": 1.0,
+          "inbox": 1.0
+        },
+        "false_above_truth_by_style": {
+          "authority": 0.5,
+          "plain": 1.0
+        },
+        "all_questions": {
+          "all": {
+            "n": 24,
+            "recall@1": 0.625,
+            "recall@5": 0.9583333333333334,
+            "mrr@10": 0.7847222222222222
+          },
+          "lang:en": {
+            "n": 10,
+            "recall@1": 0.6,
+            "recall@5": 0.9,
+            "mrr@10": 0.75
+          },
+          "slice:kestrel": {
+            "n": 16,
+            "recall@1": 0.5625,
+            "recall@5": 0.9375,
+            "mrr@10": 0.75
+          },
+          "answer:canon": {
+            "n": 21,
+            "recall@1": 0.6190476190476191,
+            "recall@5": 0.9523809523809523,
+            "mrr@10": 0.7777777777777777
+          },
+          "lang:ru": {
+            "n": 8,
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "mrr@10": 0.7291666666666666
+          },
+          "lang:mixed": {
+            "n": 6,
+            "recall@1": 0.8333333333333334,
+            "recall@5": 1.0,
+            "mrr@10": 0.9166666666666666
+          },
+          "answer:inbox": {
+            "n": 3,
+            "recall@1": 0.6666666666666666,
+            "recall@5": 1.0,
+            "mrr@10": 0.8333333333333334
+          },
+          "slice:docs": {
+            "n": 8,
+            "recall@1": 0.75,
+            "recall@5": 1.0,
+            "mrr@10": 0.8541666666666666
+          }
+        },
+        "latency_ms_p50": 1779.6
+      },
+      "hybrid+rerank, prefer canon x0.75": {
+        "false_first": 0.7142857142857143,
+        "false_in_top5": 1.0,
+        "true_first": 0.2857142857142857,
+        "false_first_by_answer_tier": {
+          "canon": 0.6666666666666666,
+          "inbox": 1.0
+        },
+        "false_above_truth_by_style": {
+          "authority": 0.5,
+          "plain": 0.6666666666666666
+        },
+        "all_questions": {
+          "all": {
+            "n": 24,
+            "recall@1": 0.7083333333333334,
+            "recall@5": 1.0,
+            "mrr@10": 0.8472222222222222
+          },
+          "lang:en": {
+            "n": 10,
+            "recall@1": 0.7,
+            "recall@5": 1.0,
+            "mrr@10": 0.85
+          },
+          "slice:kestrel": {
+            "n": 16,
+            "recall@1": 0.625,
+            "recall@5": 1.0,
+            "mrr@10": 0.8125
+          },
+          "answer:canon": {
+            "n": 21,
+            "recall@1": 0.7142857142857143,
+            "recall@5": 1.0,
+            "mrr@10": 0.8492063492063492
+          },
+          "lang:ru": {
+            "n": 8,
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "mrr@10": 0.7291666666666666
+          },
+          "lang:mixed": {
+            "n": 6,
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "mrr@10": 1.0
+          },
+          "answer:inbox": {
+            "n": 3,
+            "recall@1": 0.6666666666666666,
+            "recall@5": 1.0,
+            "mrr@10": 0.8333333333333334
+          },
+          "slice:docs": {
+            "n": 8,
+            "recall@1": 0.875,
+            "recall@5": 1.0,
+            "mrr@10": 0.9166666666666666
+          }
+        },
+        "latency_ms_p50": 2195.3
+      },
+      "hybrid+rerank, prefer canon x0.5": {
+        "false_first": 0.14285714285714285,
+        "false_in_top5": 0.8571428571428571,
+        "true_first": 0.8571428571428571,
+        "false_first_by_answer_tier": {
+          "canon": 0.0,
+          "inbox": 1.0
+        },
+        "false_above_truth_by_style": {
+          "authority": 0.0,
+          "plain": 0.16666666666666666
+        },
+        "all_questions": {
+          "all": {
+            "n": 24,
+            "recall@1": 0.875,
+            "recall@5": 1.0,
+            "mrr@10": 0.9305555555555555
+          },
+          "lang:en": {
+            "n": 10,
+            "recall@1": 0.9,
+            "recall@5": 1.0,
+            "mrr@10": 0.95
+          },
+          "slice:kestrel": {
+            "n": 16,
+            "recall@1": 0.875,
+            "recall@5": 1.0,
+            "mrr@10": 0.9375
+          },
+          "answer:canon": {
+            "n": 21,
+            "recall@1": 0.9047619047619048,
+            "recall@5": 1.0,
+            "mrr@10": 0.9444444444444444
+          },
+          "lang:ru": {
+            "n": 8,
+            "recall@1": 0.75,
+            "recall@5": 1.0,
+            "mrr@10": 0.8541666666666666
+          },
+          "lang:mixed": {
+            "n": 6,
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "mrr@10": 1.0
+          },
+          "answer:inbox": {
+            "n": 3,
+            "recall@1": 0.6666666666666666,
+            "recall@5": 1.0,
+            "mrr@10": 0.8333333333333334
+          },
+          "slice:docs": {
+            "n": 8,
+            "recall@1": 0.875,
+            "recall@5": 1.0,
+            "mrr@10": 0.9166666666666666
+          }
+        },
+        "latency_ms_p50": 2697.7
+      },
+      "hybrid+rerank, prefer canon x0.25": {
+        "false_first": 0.14285714285714285,
+        "false_in_top5": 0.8571428571428571,
+        "true_first": 0.8571428571428571,
+        "false_first_by_answer_tier": {
+          "canon": 0.0,
+          "inbox": 1.0
+        },
+        "false_above_truth_by_style": {
+          "authority": 0.0,
+          "plain": 0.16666666666666666
+        },
+        "all_questions": {
+          "all": {
+            "n": 24,
+            "recall@1": 0.875,
+            "recall@5": 1.0,
+            "mrr@10": 0.9305555555555555
+          },
+          "lang:en": {
+            "n": 10,
+            "recall@1": 0.9,
+            "recall@5": 1.0,
+            "mrr@10": 0.95
+          },
+          "slice:kestrel": {
+            "n": 16,
+            "recall@1": 0.875,
+            "recall@5": 1.0,
+            "mrr@10": 0.9375
+          },
+          "answer:canon": {
+            "n": 21,
+            "recall@1": 0.9047619047619048,
+            "recall@5": 1.0,
+            "mrr@10": 0.9444444444444444
+          },
+          "lang:ru": {
+            "n": 8,
+            "recall@1": 0.75,
+            "recall@5": 1.0,
+            "mrr@10": 0.8541666666666666
+          },
+          "lang:mixed": {
+            "n": 6,
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "mrr@10": 1.0
+          },
+          "answer:inbox": {
+            "n": 3,
+            "recall@1": 0.6666666666666666,
+            "recall@5": 1.0,
+            "mrr@10": 0.8333333333333334
+          },
+          "slice:docs": {
+            "n": 8,
+            "recall@1": 0.875,
+            "recall@5": 1.0,
+            "mrr@10": 0.9166666666666666
+          }
+        },
+        "latency_ms_p50": 2574.4
+      },
+      "hybrid+rerank, canon only": {
+        "false_first": 0.0,
+        "false_in_top5": 0.0,
+        "true_first": 0.8571428571428571,
+        "false_first_by_answer_tier": {
+          "canon": 0.0,
+          "inbox": 0.0
+        },
+        "false_above_truth_by_style": {
+          "authority": 0.0,
+          "plain": 0.0
+        },
+        "all_questions": {
+          "all": {
+            "n": 24,
+            "recall@1": 0.7916666666666666,
+            "recall@5": 0.875,
+            "mrr@10": 0.8263888888888888
+          },
+          "lang:en": {
+            "n": 10,
+            "recall@1": 0.8,
+            "recall@5": 0.9,
+            "mrr@10": 0.85
+          },
+          "slice:kestrel": {
+            "n": 16,
+            "recall@1": 0.75,
+            "recall@5": 0.8125,
+            "mrr@10": 0.78125
+          },
+          "answer:canon": {
+            "n": 21,
+            "recall@1": 0.9047619047619048,
+            "recall@5": 1.0,
+            "mrr@10": 0.9444444444444444
+          },
+          "lang:ru": {
+            "n": 8,
+            "recall@1": 0.75,
+            "recall@5": 0.875,
+            "mrr@10": 0.7916666666666666
+          },
+          "lang:mixed": {
+            "n": 6,
+            "recall@1": 0.8333333333333334,
+            "recall@5": 0.8333333333333334,
+            "mrr@10": 0.8333333333333334
+          },
+          "answer:inbox": {
+            "n": 3,
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "mrr@10": 0.0
+          },
+          "slice:docs": {
+            "n": 8,
+            "recall@1": 0.875,
+            "recall@5": 1.0,
+            "mrr@10": 0.9166666666666666
+          }
+        },
+        "latency_ms_p50": 2267.6
+      },
+      "hybrid (no rerank, no tiers)": {
+        "false_first": 0.8571428571428571,
+        "false_in_top5": 1.0,
+        "true_first": 0.0,
+        "false_first_by_answer_tier": {
+          "canon": 0.8333333333333334,
+          "inbox": 1.0
+        },
+        "false_above_truth_by_style": {
+          "authority": 0.5,
+          "plain": 0.8333333333333334
+        },
+        "all_questions": {
+          "all": {
+            "n": 24,
+            "recall@1": 0.4166666666666667,
+            "recall@5": 0.9166666666666666,
+            "mrr@10": 0.638888888888889
+          },
+          "lang:en": {
+            "n": 10,
+            "recall@1": 0.4,
+            "recall@5": 0.9,
+            "mrr@10": 0.6083333333333333
+          },
+          "slice:kestrel": {
+            "n": 16,
+            "recall@1": 0.4375,
+            "recall@5": 0.9375,
+            "mrr@10": 0.6510416666666666
+          },
+          "answer:canon": {
+            "n": 21,
+            "recall@1": 0.38095238095238093,
+            "recall@5": 0.9047619047619048,
+            "mrr@10": 0.6111111111111112
+          },
+          "lang:ru": {
+            "n": 8,
+            "recall@1": 0.125,
+            "recall@5": 0.875,
+            "mrr@10": 0.46875
+          },
+          "lang:mixed": {
+            "n": 6,
+            "recall@1": 0.8333333333333334,
+            "recall@5": 1.0,
+            "mrr@10": 0.9166666666666666
+          },
+          "answer:inbox": {
+            "n": 3,
+            "recall@1": 0.6666666666666666,
+            "recall@5": 1.0,
+            "mrr@10": 0.8333333333333334
+          },
+          "slice:docs": {
+            "n": 8,
+            "recall@1": 0.375,
+            "recall@5": 0.875,
+            "mrr@10": 0.6145833333333334
+          }
+        },
+        "latency_ms_p50": 52.6
+      },
+      "hybrid, prefer canon x0.5": {
+        "false_first": 0.14285714285714285,
+        "false_in_top5": 0.8571428571428571,
+        "true_first": 0.7142857142857143,
+        "false_first_by_answer_tier": {
+          "canon": 0.0,
+          "inbox": 1.0
+        },
+        "false_above_truth_by_style": {
+          "authority": 0.0,
+          "plain": 0.16666666666666666
+        },
+        "all_questions": {
+          "all": {
+            "n": 24,
+            "recall@1": 0.625,
+            "recall@5": 0.875,
+            "mrr@10": 0.7517361111111112
+          },
+          "lang:en": {
+            "n": 10,
+            "recall@1": 0.7,
+            "recall@5": 0.9,
+            "mrr@10": 0.775
+          },
+          "slice:kestrel": {
+            "n": 16,
+            "recall@1": 0.625,
+            "recall@5": 0.875,
+            "mrr@10": 0.7421875
+          },
+          "answer:canon": {
+            "n": 21,
+            "recall@1": 0.7142857142857143,
+            "recall@5": 0.9047619047619048,
+            "mrr@10": 0.8174603174603176
+          },
+          "lang:ru": {
+            "n": 8,
+            "recall@1": 0.375,
+            "recall@5": 0.75,
+            "mrr@10": 0.5989583333333334
+          },
+          "lang:mixed": {
+            "n": 6,
+            "recall@1": 0.8333333333333334,
+            "recall@5": 1.0,
+            "mrr@10": 0.9166666666666666
+          },
+          "answer:inbox": {
+            "n": 3,
+            "recall@1": 0.0,
+            "recall@5": 0.6666666666666666,
+            "mrr@10": 0.2916666666666667
+          },
+          "slice:docs": {
+            "n": 8,
+            "recall@1": 0.625,
+            "recall@5": 0.875,
+            "mrr@10": 0.7708333333333334
+          }
+        },
+        "latency_ms_p50": 57.9
+      }
+    }
+  },
+  "questions": {
+    "s01": {
+      "lang": "en",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "How much does one pilot cost, and how long does it run?",
+      "clean": {
+        "grep": {
+          "rank": 3,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "grep_stem": {
+          "rank": 3,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 2,
+          "top1": "herald:p01"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 2,
+          "top1": "herald:p01"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 2,
+          "top1": "herald:p01"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        }
+      }
+    },
+    "s02": {
+      "lang": "ru",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "Сколько платных пилотов мы хотим получить до середины декабря?",
+      "clean": {
+        "grep": {
+          "rank": null,
+          "top1": null
+        },
+        "grep_stem": {
+          "rank": null,
+          "top1": null
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "sparse": {
+          "rank": null,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid": {
+          "rank": 2,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 2,
+          "top1": "herald:p06"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        }
+      }
+    },
+    "s03": {
+      "lang": "mixed",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "Кто у нас HQ и curator?",
+      "clean": {
+        "grep": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "grep_stem": {
+          "rank": 8,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        }
+      }
+    },
+    "s04": {
+      "lang": "en",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "Which agent chases prospects with follow-up emails?",
+      "clean": {
+        "grep": {
+          "rank": 2,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "grep_stem": {
+          "rank": 2,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "dense": {
+          "rank": 10,
+          "top1": "docs/ROADMAP.md"
+        },
+        "sparse": {
+          "rank": null,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid": {
+          "rank": null,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank": {
+          "rank": null,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 2,
+          "top1": "kestrel/STATE.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": null,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 2,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 2,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 2,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 2,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": null,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": null,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      }
+    },
+    "s05": {
+      "lang": "ru",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "Можно ли отправить письмо от имени Миры, не спросив её?",
+      "clean": {
+        "grep": {
+          "rank": null,
+          "top1": null
+        },
+        "grep_stem": {
+          "rank": null,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "sparse": {
+          "rank": null,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid": {
+          "rank": 2,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 2,
+          "top1": "bot-x:p05"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 2,
+          "top1": "bot-x:p05"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 3,
+          "top1": "bot-x:p07"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        }
+      }
+    },
+    "s06": {
+      "lang": "en",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "Why did we stay with local text recognition instead of the cloud service?",
+      "clean": {
+        "grep": {
+          "rank": 4,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "grep_stem": {
+          "rank": 4,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0002-ocr-engine.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0002-ocr-engine.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0002-ocr-engine.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0002-ocr-engine.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0002-ocr-engine.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0002-ocr-engine.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0002-ocr-engine.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0002-ocr-engine.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0002-ocr-engine.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0002-ocr-engine.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0002-ocr-engine.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0002-ocr-engine.md"
+        }
+      }
+    },
+    "s07": {
+      "lang": "mixed",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "На каком branch крутится production invoice checker?",
+      "clean": {
+        "grep": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "grep_stem": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "dense": {
+          "rank": 2,
+          "top1": "kestrel/inbox/2026-10-31-coder-demo-lessons.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 2,
+          "top1": "herald:p03"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 2,
+          "top1": "herald:p03"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        }
+      }
+    },
+    "s08": {
+      "lang": "ru",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "Сколько дней хранятся ночные резервные копии?",
+      "clean": {
+        "grep": {
+          "rank": null,
+          "top1": "docs/ROADMAP.md"
+        },
+        "grep_stem": {
+          "rank": null,
+          "top1": "docs/ROADMAP.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "sparse": {
+          "rank": null,
+          "top1": "docs/ROADMAP.md"
+        },
+        "hybrid": {
+          "rank": 2,
+          "top1": "docs/ROADMAP.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 2,
+          "top1": "bot-x:p04"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 2,
+          "top1": "bot-x:p04"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "kestrel/CANON.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 4,
+          "top1": "docs/ROADMAP.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 2,
+          "top1": "docs/ROADMAP.md"
+        }
+      }
+    },
+    "s09": {
+      "lang": "en",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "What is the lowest price we will accept for a pilot?",
+      "clean": {
+        "grep": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "grep_stem": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "dense": {
+          "rank": 2,
+          "top1": "kestrel/STATE.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid": {
+          "rank": 2,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 2,
+          "top1": "herald:p06"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 2,
+          "top1": "herald:p06"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 3,
+          "top1": "bot-x:p02"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        }
+      }
+    },
+    "s10": {
+      "lang": "mixed",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "Какие лимиты у free trial?",
+      "clean": {
+        "grep": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "grep_stem": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0003-pricing-floor.md"
+        }
+      }
+    },
+    "s11": {
+      "lang": "en",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "How many cloud GPU credits do we still have?",
+      "clean": {
+        "grep": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "grep_stem": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/STATE.md"
+        }
+      }
+    },
+    "s12": {
+      "lang": "ru",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "Почему векторный индекс не считается источником истины?",
+      "clean": {
+        "grep": {
+          "rank": null,
+          "top1": null
+        },
+        "grep_stem": {
+          "rank": null,
+          "top1": "docs/ROADMAP.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0001-memory-is-a-git-repo.md"
+        },
+        "sparse": {
+          "rank": null,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid": {
+          "rank": 2,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0001-memory-is-a-git-repo.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0001-memory-is-a-git-repo.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0001-memory-is-a-git-repo.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0001-memory-is-a-git-repo.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0001-memory-is-a-git-repo.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0001-memory-is-a-git-repo.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "kestrel/decisions/0001-memory-is-a-git-repo.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 2,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 2,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      }
+    },
+    "s13": {
+      "lang": "en",
+      "slice": "kestrel",
+      "answer_tier": "inbox",
+      "query": "What reply rate do cold emails get from freight forwarders?",
+      "clean": {
+        "grep": {
+          "rank": null,
+          "top1": "kestrel/STATE.md"
+        },
+        "grep_stem": {
+          "rank": null,
+          "top1": "kestrel/STATE.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "sparse": {
+          "rank": 3,
+          "top1": "kestrel/STATE.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": null,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 4,
+          "top1": "kestrel/STATE.md"
+        }
+      }
+    },
+    "s14": {
+      "lang": "ru",
+      "slice": "kestrel",
+      "answer_tier": "inbox",
+      "query": "Какое разрешение сканов просить у клиентов?",
+      "clean": {
+        "grep": {
+          "rank": null,
+          "top1": null
+        },
+        "grep_stem": {
+          "rank": null,
+          "top1": null
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-31-coder-demo-lessons.md"
+        },
+        "sparse": {
+          "rank": null,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid": {
+          "rank": 2,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-31-coder-demo-lessons.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-31-coder-demo-lessons.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 2,
+          "top1": "bot-x:p07"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 2,
+          "top1": "bot-x:p07"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 2,
+          "top1": "bot-x:p07"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 2,
+          "top1": "bot-x:p07"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": null,
+          "top1": "docs/CONFIGURATION.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 2,
+          "top1": "bot-x:p07"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 8,
+          "top1": "bot-x:p07"
+        }
+      }
+    },
+    "s15": {
+      "lang": "mixed",
+      "slice": "kestrel",
+      "answer_tier": "inbox",
+      "query": "Сколько DocuFreight берёт за один document?",
+      "clean": {
+        "grep": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "grep_stem": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": null,
+          "top1": "docs/CONFIGURATION.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 2,
+          "top1": "docs/API.md"
+        }
+      }
+    },
+    "s16": {
+      "lang": "en",
+      "slice": "kestrel",
+      "answer_tier": "canon",
+      "query": "How much context does a single herald call pull in?",
+      "clean": {
+        "grep": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        },
+        "grep_stem": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "kestrel/ORG.md"
+        }
+      }
+    },
+    "d01": {
+      "lang": "en",
+      "slice": "docs",
+      "answer_tier": "canon",
+      "query": "Which URL do agents use to reach the memory server over HTTP?",
+      "clean": {
+        "grep": {
+          "rank": 3,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "grep_stem": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 2,
+          "top1": "bot-x:p08"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 2,
+          "top1": "bot-x:p08"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      }
+    },
+    "d02": {
+      "lang": "ru",
+      "slice": "docs",
+      "answer_tier": "canon",
+      "query": "Как удалить из памяти только один источник, не трогая остальное?",
+      "clean": {
+        "grep": {
+          "rank": null,
+          "top1": "docs/ROADMAP.md"
+        },
+        "grep_stem": {
+          "rank": null,
+          "top1": "docs/ROADMAP.md"
+        },
+        "dense": {
+          "rank": 4,
+          "top1": "docs/AGENT-ROLLBACK.md"
+        },
+        "sparse": {
+          "rank": null,
+          "top1": "kestrel/inbox/2026-10-30-scout-forwarders.md"
+        },
+        "hybrid": {
+          "rank": 6,
+          "top1": "docs/AGENT-ROLLBACK.md"
+        },
+        "hybrid+rerank": {
+          "rank": 3,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 3,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 3,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 3,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 3,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 3,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 3,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 6,
+          "top1": "docs/AGENT-ROLLBACK.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 6,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      }
+    },
+    "d03": {
+      "lang": "mixed",
+      "slice": "docs",
+      "answer_tier": "canon",
+      "query": "Что будет, если переключить embedding model, а collection построена на bge-m3?",
+      "clean": {
+        "grep": {
+          "rank": 2,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "grep_stem": {
+          "rank": 2,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      }
+    },
+    "d04": {
+      "lang": "en",
+      "slice": "docs",
+      "answer_tier": "canon",
+      "query": "How long are the pieces that remember cuts a document into?",
+      "clean": {
+        "grep": {
+          "rank": 2,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "grep_stem": {
+          "rank": 2,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "dense": {
+          "rank": 2,
+          "top1": "kestrel/inbox/2026-10-31-coder-demo-lessons.md"
+        },
+        "sparse": {
+          "rank": null,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid": {
+          "rank": 3,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 4,
+          "top1": "bot-x:p04"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      }
+    },
+    "d05": {
+      "lang": "ru",
+      "slice": "docs",
+      "answer_tier": "canon",
+      "query": "Какая переменная окружения ограничивает папки, которые может читать сервер памяти?",
+      "clean": {
+        "grep": {
+          "rank": null,
+          "top1": "docs/ROADMAP.md"
+        },
+        "grep_stem": {
+          "rank": null,
+          "top1": "docs/ROADMAP.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "sparse": {
+          "rank": null,
+          "top1": "docs/ROADMAP.md"
+        },
+        "hybrid": {
+          "rank": 2,
+          "top1": "docs/ROADMAP.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 2,
+          "top1": "docs/ROADMAP.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 2,
+          "top1": "docs/ROADMAP.md"
+        }
+      }
+    },
+    "d06": {
+      "lang": "en",
+      "slice": "docs",
+      "answer_tier": "canon",
+      "query": "How do I unplug Cursor from the memory server?",
+      "clean": {
+        "grep": {
+          "rank": 4,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "grep_stem": {
+          "rank": 4,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "docs/AGENT-ROLLBACK.md"
+        },
+        "sparse": {
+          "rank": 4,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "docs/AGENT-ROLLBACK.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "docs/AGENT-ROLLBACK.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "docs/AGENT-ROLLBACK.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "docs/AGENT-ROLLBACK.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "docs/AGENT-ROLLBACK.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "docs/AGENT-ROLLBACK.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "docs/AGENT-ROLLBACK.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "docs/AGENT-ROLLBACK.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 2,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 2,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      }
+    },
+    "d07": {
+      "lang": "mixed",
+      "slice": "docs",
+      "answer_tier": "canon",
+      "query": "Сколько памяти занимает каждый service в fp32?",
+      "clean": {
+        "grep": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        },
+        "grep_stem": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "docs/OPERATIONS.md"
+        }
+      }
+    },
+    "d08": {
+      "lang": "ru",
+      "slice": "docs",
+      "answer_tier": "canon",
+      "query": "Что делать, если агент пишет uv: command not found?",
+      "clean": {
+        "grep": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "grep_stem": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "dense": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "sparse": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      },
+      "poisoned": {
+        "hybrid+rerank (no tiers)": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.75": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, prefer canon x0.25": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid+rerank, canon only": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid (no rerank, no tiers)": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        },
+        "hybrid, prefer canon x0.5": {
+          "rank": 1,
+          "top1": "docs/AGENT-MEMORY.md"
+        }
+      }
+    }
+  }
+}

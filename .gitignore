@@ -10,3 +10,6 @@ build/
 /tmp/
 *.log
 .DS_Store
+
+# Private eval data (golden sets, corpora, per-question results). Never commit.
+eval/private/

@@ -337,6 +337,129 @@ def test_remember_needs_exactly_one_input(tmp_path):
     asyncio.run(scenario())
 
 
+# --- Trust tiers -------------------------------------------------------------------------
+
+CANON_PRICE = "The pilot price: two paid pilots at EUR 900 to 2,400 each."
+FALSE_PRICE = "The pilot price is EUR 90."
+
+
+def _write_canon(root: Path) -> tuple[Path, Path]:
+    canon = root / "canon"
+    canon.mkdir()
+    (canon / "STATE.md").write_text(f"# State\n\n{CANON_PRICE}\n", encoding="utf-8")
+    loose = root / "scratch.md"
+    loose.write_text("# Scratch\n\nThe pilot price might change next month.\n", encoding="utf-8")
+    return canon, loose
+
+
+def test_without_canon_paths_nothing_gets_a_tier(tmp_path):
+    async def scenario():
+        memory, _ = make_memory(tmp_path)
+        canon, _ = _write_canon(tmp_path)
+        await memory.remember(None, path=str(canon))
+        await memory.remember(None, texts=[FALSE_PRICE], source="bot-x")
+        records, _ = await memory.qdrant.scroll("mcp_memory", with_payload=True)
+        assert all("tier" not in r.payload for r in records)
+        found = await memory.search(None, "what is the pilot price")
+        assert found.prefer_tier is None
+        assert all(p.tier is None for p in found.results)
+
+    asyncio.run(scenario())
+
+
+def test_tier_follows_where_the_text_came_from(tmp_path):
+    async def scenario():
+        canon, loose = _write_canon(tmp_path)
+        memory, _ = make_memory(tmp_path, canon_paths=str(canon))
+        await memory.remember(None, path=str(canon))
+        await memory.remember(None, path=str(loose))
+        await memory.remember(None, texts=[FALSE_PRICE], source="bot-x")
+        records, _ = await memory.qdrant.scroll("mcp_memory", with_payload=True)
+        tiers = {r.payload["source"].rsplit("/", 1)[-1]: r.payload["tier"] for r in records}
+        assert tiers == {"STATE.md": "canon", "scratch.md": "inbox", "bot-x": "inbox"}
+
+        async with Client(build_server(memory.settings, memory)) as client:
+            # A writer cannot claim a tier: the tool has no such argument.
+            tools = {t.name: t for t in (await client.list_tools()).tools}
+            assert "tier" not in tools["remember"].input_schema["properties"]
+            assert {"tiers", "prefer_tier"} <= set(tools["search"].input_schema["properties"])
+
+            found = await call(client, "search", query="what is the pilot price", top_k=3)
+            by_source = {r["source"].rsplit("/", 1)[-1]: r["tier"] for r in found["results"]}
+            assert by_source["bot-x"] == "inbox" and by_source["STATE.md"] == "canon"
+
+            canon_only = await call(client, "search", query="what is the pilot price", tiers=["canon"])
+            assert [r["tier"] for r in canon_only["results"]] == ["canon"]
+
+    asyncio.run(scenario())
+
+
+def test_prefer_tier_puts_canon_above_a_contradicting_note(tmp_path):
+    async def scenario():
+        canon, _ = _write_canon(tmp_path)
+        memory, _ = make_memory(tmp_path, canon_paths=str(canon))
+        await memory.remember(None, path=str(canon))
+        await memory.remember(None, texts=[FALSE_PRICE], source="bot-x")
+        query = "what is the pilot price"
+
+        # Plain ranking: the short false note matches the question best (0.8 vs 0.6).
+        plain = await memory.search(None, query)
+        assert plain.results[0].text == FALSE_PRICE and plain.prefer_tier is None
+
+        preferred = await memory.search(None, query, prefer_tier="canon")
+        assert preferred.prefer_tier == "canon"
+        assert CANON_PRICE in preferred.results[0].text and preferred.results[0].tier == "canon"
+        # The note is still there, its score multiplied by the penalty.
+        note = next(p for p in preferred.results if p.source == "bot-x")
+        assert note.score == pytest.approx(0.8 * 0.5)
+
+        # Without the reranker, the fusion order is weighted the same way.
+        fused = await memory.search(None, query, prefer_tier="canon", rerank=False)
+        assert fused.results[0].tier == "canon"
+
+        # The server default turns it on for agents that do not pass the argument.
+        memory.settings.prefer_tier = "canon"
+        assert (await memory.search(None, query)).results[0].tier == "canon"
+        assert (await memory.search(None, query, prefer_tier="")).results[0].text == FALSE_PRICE
+
+    asyncio.run(scenario())
+
+
+def test_prefer_tier_survives_a_flood_of_notes(tmp_path):
+    async def scenario():
+        canon, _ = _write_canon(tmp_path)
+        memory, _ = make_memory(tmp_path, canon_paths=str(canon), prefetch_limit=3, rerank_candidates=3)
+        await memory.remember(None, path=str(canon))
+        flood = [f"The pilot price is EUR 90, update {i}." for i in range(8)]
+        await memory.remember(None, texts=flood, source="bot-x")
+        query = "what is the pilot price"
+
+        plain = await memory.search(None, query, top_k=3)
+        assert all(p.source == "bot-x" for p in plain.results)  # canon pushed out of the pool
+
+        preferred = await memory.search(None, query, top_k=3, prefer_tier="canon")
+        assert preferred.results[0].tier == "canon"
+
+    asyncio.run(scenario())
+
+
+def test_rereading_a_file_after_enabling_tiers_relabels_without_embedding(tmp_path):
+    async def scenario():
+        canon, _ = _write_canon(tmp_path)
+        memory, services = make_memory(tmp_path)
+        await memory.remember(None, path=str(canon))
+        calls = len(services.embed_requests)
+
+        memory.settings.canon_paths = str(canon)
+        again = await memory.remember(None, path=str(canon))
+        assert again.embedded == 0 and again.unchanged == again.passages
+        assert len(services.embed_requests) == calls
+        records, _ = await memory.qdrant.scroll("mcp_memory", with_payload=True)
+        assert {r.payload["tier"] for r in records} == {"canon"}
+
+    asyncio.run(scenario())
+
+
 # --- Forget and isolation ------------------------------------------------------------
 
 
